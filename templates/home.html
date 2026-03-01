@@ -1,0 +1,485 @@
+{% extends "base.html" %}
+
+{% block title %}Home - Tracker{% endblock %}
+
+{% block extra_css %}
+<style>
+    .hero { text-align: center; margin-bottom: 2.5rem; }
+    .hero h1 { font-size: 1.6rem; }
+    .hero .subtitle { margin-bottom: 0; }
+
+    .record-btn {
+        width: 96px;
+        height: 96px;
+        border-radius: 50%;
+        border: 3px solid #e8e8e8;
+        background: #fff;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 0.6rem;
+        transition: all 0.2s;
+        position: relative;
+    }
+
+    .record-btn:hover { border-color: #ccc; transform: scale(1.04); }
+
+    .record-btn .dot {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: #e74c3c;
+        transition: all 0.25s;
+    }
+
+    .record-btn.active { border-color: #e74c3c; }
+    .record-btn.active .dot {
+        width: 28px;
+        height: 28px;
+        border-radius: 6px;
+    }
+
+    .record-label {
+        font-size: 0.8rem;
+        color: #999;
+        font-weight: 500;
+        text-align: center;
+        transition: color 0.2s;
+    }
+
+    .record-label.active { color: #e74c3c; }
+
+    .record-section {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin-bottom: 2.5rem;
+    }
+
+    .timer {
+        font-size: 0.85rem;
+        color: #e74c3c;
+        font-weight: 600;
+        font-variant-numeric: tabular-nums;
+        margin-top: 0.5rem;
+        display: none;
+    }
+
+    .timer.active { display: block; }
+
+    .nav-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.75rem;
+    }
+
+    .nav-card {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 1rem 1.15rem;
+        background: #fff;
+        border: 1px solid #eee;
+        border-radius: 12px;
+        text-decoration: none;
+        color: inherit;
+        transition: all 0.15s;
+    }
+
+    .nav-card:hover { border-color: #ddd; background: #fefefe; }
+
+    .nav-card .card-icon {
+        width: 38px;
+        height: 38px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1rem;
+        flex-shrink: 0;
+    }
+
+    .nav-card .card-icon.green { background: #ecfdf5; color: #10b981; }
+    .nav-card .card-icon.purple { background: #f3f0ff; color: #7c5cfc; }
+
+    .nav-card .card-text h3 { font-size: 0.9rem; font-weight: 600; color: #1a1a1a; }
+    .nav-card .card-text p { font-size: 0.75rem; color: #aaa; margin-top: 0.15rem; }
+
+    /* Status / feedback */
+    .status-bar {
+        display: none;
+        align-items: center;
+        gap: 0.6rem;
+        padding: 0.75rem 1rem;
+        border-radius: 10px;
+        font-size: 0.85rem;
+        font-weight: 500;
+        margin-top: 1.5rem;
+    }
+
+    .status-bar.active { display: flex; }
+
+    .status-bar.processing {
+        background: #f3f0ff;
+        color: #7c5cfc;
+    }
+
+    .status-bar.success {
+        background: #ecfdf5;
+        color: #10b981;
+    }
+
+    .status-bar.error {
+        background: #fef2f2;
+        color: #ef4444;
+    }
+
+    .dot-pulse {
+        width: 8px; height: 8px;
+        border-radius: 50%;
+        animation: dotPulse 1.2s infinite;
+    }
+
+    @keyframes dotPulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.3; }
+    }
+
+    /* Result */
+    .result-card {
+        background: #fff;
+        border: 1px solid #eee;
+        border-radius: 12px;
+        padding: 1.25rem;
+        margin-top: 1.25rem;
+        display: none;
+    }
+
+    .result-meta {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
+
+    .tag {
+        font-size: 0.7rem;
+        font-weight: 600;
+        padding: 0.2rem 0.55rem;
+        border-radius: 5px;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+    }
+
+    .tag-expense { background: #ecfdf5; color: #10b981; }
+    .tag-task { background: #f3f0ff; color: #7c5cfc; }
+    .tag-file { background: #f5f5f5; color: #999; font-weight: 400; text-transform: none; }
+
+    .result-fields { display: flex; flex-direction: column; gap: 0.6rem; }
+
+    .result-field {
+        display: flex;
+        align-items: baseline;
+        gap: 0.5rem;
+    }
+
+    .result-field .field-label {
+        font-size: 0.7rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+        color: #aaa;
+        width: 70px;
+        flex-shrink: 0;
+    }
+
+    .result-field .field-value {
+        font-size: 0.9rem;
+        color: #333;
+    }
+
+    .result-quote {
+        margin-top: 1rem;
+        padding-top: 0.75rem;
+        border-top: 1px solid #f0f0f0;
+        font-size: 0.8rem;
+        color: #bbb;
+        font-style: italic;
+        line-height: 1.5;
+    }
+
+    /* Error card */
+    .error-card {
+        display: none;
+        background: #fff;
+        border: 1px solid #fecaca;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-top: 1.25rem;
+        text-align: center;
+    }
+
+    .error-card.active { display: block; }
+
+    .error-card h3 {
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: #1a1a1a;
+        margin-bottom: 0.35rem;
+    }
+
+    .error-card p {
+        font-size: 0.85rem;
+        color: #999;
+        line-height: 1.5;
+    }
+
+    .error-card .detail {
+        font-size: 0.8rem;
+        color: #ccc;
+        font-style: italic;
+        margin-top: 0.5rem;
+    }
+
+    .btn-retry {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        margin-top: 1rem;
+        padding: 0.5rem 1rem;
+        background: #fef2f2;
+        color: #ef4444;
+        border: 1px solid #fecaca;
+        border-radius: 8px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.15s;
+    }
+
+    .btn-retry:hover { background: #fee2e2; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="hero">
+    <h1>Voice Tracker</h1>
+    <p class="subtitle">Record, classify, organize.</p>
+</div>
+
+<div class="record-section">
+    <div class="record-btn" id="recordBtn" onclick="toggleRecording()">
+        <div class="dot"></div>
+    </div>
+    <span class="record-label" id="recordLabel">Tap to record</span>
+    <span class="timer" id="recordingTimer">00:00</span>
+</div>
+
+<div class="nav-row">
+    <a href="/expenses" class="nav-card">
+        <div class="card-icon green">$</div>
+        <div class="card-text">
+            <h3>Expenses</h3>
+            <p>View spending</p>
+        </div>
+    </a>
+    <a href="/tracker" class="nav-card">
+        <div class="card-icon purple">&#10003;</div>
+        <div class="card-text">
+            <h3>Tasks</h3>
+            <p>View plans</p>
+        </div>
+    </a>
+</div>
+
+<div id="processingStatus" class="status-bar processing">
+    <div class="dot-pulse" style="background:#7c5cfc;"></div>
+    <span id="processingText">Processing...</span>
+</div>
+
+<div id="saveNotification" class="status-bar success">
+    <span id="notificationText"></span>
+</div>
+
+<div id="errorCard" class="error-card">
+    <h3 id="errorTitle">Something went wrong</h3>
+    <p id="errorMessage">Please try recording again.</p>
+    <p id="errorDetail" class="detail"></p>
+    <button class="btn-retry" onclick="dismissError()">Try again</button>
+</div>
+
+<div id="resultCard" class="result-card">
+    <div class="result-meta">
+        <span id="categoryBadge" class="tag"></span>
+        <span id="fileBadge" class="tag tag-file" style="margin-left:auto;"></span>
+    </div>
+    <div class="result-fields" id="resultFields"></div>
+    <div class="result-quote">
+        <span id="transcriptionText"></span>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let isRecording = false;
+    let mediaRecorder = null;
+    let audioChunks = [];
+    let timerInterval = null;
+    let secondsElapsed = 0;
+
+    function updateTimerDisplay() {
+        secondsElapsed++;
+        const mins = String(Math.floor(secondsElapsed / 60)).padStart(2, '0');
+        const secs = String(secondsElapsed % 60).padStart(2, '0');
+        document.getElementById('recordingTimer').textContent = `${mins}:${secs}`;
+    }
+
+    function showResult(data) {
+        const card = document.getElementById('resultCard');
+        const badge = document.getElementById('categoryBadge');
+        const fileBadge = document.getElementById('fileBadge');
+        const fields = document.getElementById('resultFields');
+
+        const cls = data.classification;
+        const category = cls.category;
+
+        badge.textContent = category;
+        badge.className = 'tag ' + (category === 'expense' ? 'tag-expense' : 'tag-task');
+        fileBadge.textContent = data.filename;
+
+        fields.innerHTML = '';
+
+        const amountDisplay = cls.amount ? '₹' + cls.amount : '—';
+        const entries = category === 'expense'
+            ? [['Date', cls.date], ['Amount', amountDisplay], ['Reason', cls.reason]]
+            : [['Task', cls.task], ['Deadline', cls.deadline]];
+
+        entries.forEach(([label, value]) => {
+            const row = document.createElement('div');
+            row.className = 'result-field';
+            row.innerHTML = `<span class="field-label">${label}</span><span class="field-value">${value || '—'}</span>`;
+            fields.appendChild(row);
+        });
+
+        document.getElementById('transcriptionText').textContent = '"' + data.transcription + '"';
+        card.style.display = 'block';
+    }
+
+    function showNotification(msg) {
+        const n = document.getElementById('saveNotification');
+        document.getElementById('notificationText').textContent = msg;
+        n.classList.add('active');
+        setTimeout(() => n.classList.remove('active'), 4000);
+    }
+
+    const ERROR_MESSAGES = {
+        transcription: {
+            title: 'Transcription failed',
+            message: 'The audio was too short, quiet, or unclear. Try recording again.',
+        },
+        empty_transcription: {
+            title: 'No speech detected',
+            message: 'We didn\'t hear anything. Check your mic and try again.',
+        },
+        classification: {
+            title: 'Couldn\'t process',
+            message: 'We heard you but couldn\'t classify it. Try a clearer phrase.',
+        },
+    };
+
+    function showError(data) {
+        const card = document.getElementById('errorCard');
+        const info = ERROR_MESSAGES[data.error_type] || { title: 'Something went wrong', message: data.error };
+
+        document.getElementById('errorTitle').textContent = info.title;
+        document.getElementById('errorMessage').textContent = info.message;
+
+        const detail = document.getElementById('errorDetail');
+        if (data.transcription) {
+            detail.textContent = `Heard: "${data.transcription}"`;
+            detail.style.display = 'block';
+        } else {
+            detail.style.display = 'none';
+        }
+
+        document.getElementById('resultCard').style.display = 'none';
+        card.classList.add('active');
+    }
+
+    function dismissError() {
+        document.getElementById('errorCard').classList.remove('active');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    async function toggleRecording() {
+        const btn = document.getElementById('recordBtn');
+        const label = document.getElementById('recordLabel');
+        const timer = document.getElementById('recordingTimer');
+
+        if (!isRecording) {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+                audioChunks = [];
+
+                mediaRecorder.ondataavailable = (e) => {
+                    if (e.data.size > 0) audioChunks.push(e.data);
+                };
+
+                mediaRecorder.onstop = async () => {
+                    stream.getTracks().forEach(t => t.stop());
+                    const blob = new Blob(audioChunks, { type: 'audio/webm' });
+                    const formData = new FormData();
+                    formData.append('audio', blob, 'recording.webm');
+
+                    const processing = document.getElementById('processingStatus');
+                    const processingText = document.getElementById('processingText');
+
+                    processingText.textContent = 'Transcribing & classifying...';
+                    processing.classList.add('active');
+
+                    try {
+                        const resp = await fetch('/upload-recording', { method: 'POST', body: formData });
+                        const data = await resp.json();
+                        processing.classList.remove('active');
+
+                        if (data.error) {
+                            showError(data);
+                            return;
+                        }
+
+                        document.getElementById('errorCard').classList.remove('active');
+                        showNotification('Saved & classified');
+                        showResult(data);
+                    } catch (err) {
+                        processing.classList.remove('active');
+                        showError({ error: 'Network error', error_type: 'network', transcription: null });
+                    }
+                };
+
+                mediaRecorder.start();
+                isRecording = true;
+                secondsElapsed = 0;
+                timer.textContent = '00:00';
+                timerInterval = setInterval(updateTimerDisplay, 1000);
+                btn.classList.add('active');
+                label.textContent = 'Recording';
+                label.classList.add('active');
+                timer.classList.add('active');
+            } catch (err) {
+                alert('Microphone access denied. Please allow microphone permissions.');
+            }
+        } else {
+            mediaRecorder.stop();
+            isRecording = false;
+            clearInterval(timerInterval);
+            btn.classList.remove('active');
+            label.textContent = 'Tap to record';
+            label.classList.remove('active');
+            timer.classList.remove('active');
+        }
+    }
+</script>
+{% endblock %}

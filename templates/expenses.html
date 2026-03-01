@@ -1,0 +1,640 @@
+{% extends "base.html" %}
+
+{% block title %}Expenses - Tracker{% endblock %}
+
+{% block extra_css %}
+<style>
+    .page-header { margin-bottom: 1.75rem; }
+    .page-header .subtitle { margin-bottom: 0; }
+
+    /* Stats */
+    .stats {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 0.6rem;
+        margin-bottom: 1.75rem;
+    }
+
+    .stat {
+        background: #fff;
+        border: 1px solid #eee;
+        border-radius: 10px;
+        padding: 0.9rem 1rem;
+    }
+
+    .stat .stat-num {
+        font-size: 1.25rem;
+        font-weight: 700;
+        letter-spacing: -0.5px;
+        color: #1a1a1a;
+    }
+
+    .stat .stat-label {
+        font-size: 0.6rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        color: #aaa;
+        margin-top: 0.15rem;
+    }
+
+    .stat-num.green { color: #10b981; }
+
+    /* Category breakdown */
+    .section-card {
+        background: #fff;
+        border: 1px solid #eee;
+        border-radius: 12px;
+        padding: 1.15rem;
+        margin-bottom: 1.25rem;
+    }
+
+    .section-title {
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        color: #aaa;
+        margin-bottom: 0.85rem;
+    }
+
+    .cat-list { display: flex; flex-direction: column; gap: 0.6rem; }
+
+    .cat-row {
+        display: flex;
+        align-items: center;
+        gap: 0.65rem;
+    }
+
+    .cat-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.85rem;
+        flex-shrink: 0;
+    }
+
+    .cat-info { flex: 1; min-width: 0; }
+
+    .cat-name {
+        font-size: 0.82rem;
+        font-weight: 600;
+        color: #1a1a1a;
+        text-transform: capitalize;
+    }
+
+    .cat-bar-wrap {
+        height: 4px;
+        background: #f0f0f0;
+        border-radius: 2px;
+        margin-top: 0.3rem;
+        overflow: hidden;
+    }
+
+    .cat-bar {
+        height: 100%;
+        border-radius: 2px;
+        transition: width 0.4s ease;
+    }
+
+    .cat-amount {
+        font-size: 0.82rem;
+        font-weight: 600;
+        color: #555;
+        flex-shrink: 0;
+    }
+
+    .cat-food .cat-icon { background: #fef3c7; color: #d97706; }
+    .cat-food .cat-bar { background: #f59e0b; }
+    .cat-transport .cat-icon { background: #dbeafe; color: #3b82f6; }
+    .cat-transport .cat-bar { background: #3b82f6; }
+    .cat-shopping .cat-icon { background: #fce7f3; color: #ec4899; }
+    .cat-shopping .cat-bar { background: #ec4899; }
+    .cat-bills .cat-icon { background: #fef2f2; color: #ef4444; }
+    .cat-bills .cat-bar { background: #ef4444; }
+    .cat-entertainment .cat-icon { background: #f3f0ff; color: #7c5cfc; }
+    .cat-entertainment .cat-bar { background: #7c5cfc; }
+    .cat-health .cat-icon { background: #ecfdf5; color: #10b981; }
+    .cat-health .cat-bar { background: #10b981; }
+    .cat-education .cat-icon { background: #e0f2fe; color: #0ea5e9; }
+    .cat-education .cat-bar { background: #0ea5e9; }
+    .cat-other .cat-icon { background: #f5f5f5; color: #888; }
+    .cat-other .cat-bar { background: #999; }
+
+    /* Daily spending mini bar chart */
+    .daily-chart {
+        display: flex;
+        align-items: flex-end;
+        gap: 3px;
+        height: 60px;
+        padding-top: 0.5rem;
+    }
+
+    .daily-bar-wrap {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        height: 100%;
+        justify-content: flex-end;
+    }
+
+    .daily-bar {
+        width: 100%;
+        max-width: 28px;
+        border-radius: 3px 3px 0 0;
+        background: #10b981;
+        transition: height 0.3s;
+        min-height: 2px;
+    }
+
+    .daily-bar.today-bar { background: #7c5cfc; }
+
+    .daily-label {
+        font-size: 0.55rem;
+        color: #ccc;
+        margin-top: 0.25rem;
+        font-weight: 500;
+    }
+
+    /* Toolbar */
+    .toolbar {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+        flex-wrap: wrap;
+    }
+
+    .tabs {
+        display: flex;
+        background: #fff;
+        border: 1px solid #eee;
+        border-radius: 8px;
+        overflow: hidden;
+        flex-shrink: 0;
+    }
+
+    .tab {
+        padding: 0.45rem 0.75rem;
+        font-size: 0.78rem;
+        font-weight: 500;
+        color: #999;
+        cursor: pointer;
+        border: none;
+        background: none;
+        transition: all 0.15s;
+        border-right: 1px solid #eee;
+        font-family: inherit;
+    }
+
+    .tab:last-child { border-right: none; }
+    .tab:hover { color: #555; }
+    .tab.active { color: #1a1a1a; background: #f5f5f5; }
+
+    .search-box {
+        flex: 1;
+        min-width: 120px;
+        padding: 0.45rem 0.75rem;
+        font-size: 0.82rem;
+        border: 1px solid #eee;
+        border-radius: 8px;
+        background: #fff;
+        color: #1a1a1a;
+        outline: none;
+        font-family: inherit;
+        transition: border-color 0.15s;
+    }
+
+    .search-box:focus { border-color: #ccc; }
+    .search-box::placeholder { color: #ccc; }
+
+    /* Expense list */
+    .expense-list { display: flex; flex-direction: column; gap: 0.5rem; }
+
+    .expense-item {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.8rem 1rem;
+        background: #fff;
+        border: 1px solid #eee;
+        border-radius: 10px;
+        transition: border-color 0.15s;
+    }
+
+    .expense-item:hover { border-color: #ddd; }
+
+    .expense-cat-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 9px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.9rem;
+        flex-shrink: 0;
+    }
+
+    .expense-body { flex: 1; min-width: 0; }
+
+    .expense-reason {
+        font-size: 0.88rem;
+        font-weight: 500;
+        color: #1a1a1a;
+        text-transform: capitalize;
+    }
+
+    .expense-meta {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-top: 0.2rem;
+    }
+
+    .expense-date {
+        font-size: 0.7rem;
+        color: #bbb;
+    }
+
+    .expense-cat-tag {
+        font-size: 0.6rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+        padding: 0.1rem 0.4rem;
+        border-radius: 4px;
+    }
+
+    .expense-amount {
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: #10b981;
+        flex-shrink: 0;
+    }
+
+    .no-match {
+        text-align: center;
+        padding: 2rem 1rem;
+        color: #ccc;
+        font-size: 0.85rem;
+        display: none;
+    }
+
+    /* Empty */
+    .empty-state {
+        text-align: center;
+        padding: 3rem 1rem;
+        background: #fff;
+        border: 1px solid #eee;
+        border-radius: 12px;
+    }
+
+    .empty-state .icon {
+        width: 48px; height: 48px;
+        border-radius: 12px;
+        background: #ecfdf5;
+        color: #10b981;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .empty-state h3 { font-size: 0.95rem; font-weight: 600; color: #1a1a1a; margin-bottom: 0.25rem; }
+    .empty-state p { font-size: 0.85rem; color: #aaa; }
+
+    /* Category tag colors */
+    .ctag-food { background: #fef3c7; color: #92400e; }
+    .ctag-transport { background: #dbeafe; color: #1e40af; }
+    .ctag-shopping { background: #fce7f3; color: #9d174d; }
+    .ctag-bills { background: #fef2f2; color: #991b1b; }
+    .ctag-entertainment { background: #f3f0ff; color: #5b21b6; }
+    .ctag-health { background: #ecfdf5; color: #065f46; }
+    .ctag-education { background: #e0f2fe; color: #075985; }
+    .ctag-other { background: #f5f5f5; color: #666; }
+</style>
+{% endblock %}
+
+{% block content %}
+<a href="/" class="back-link">&larr; Home</a>
+
+<div class="page-header">
+    <h1>Expenses</h1>
+    <p class="subtitle">Your spending at a glance.</p>
+</div>
+
+{% if expenses %}
+<!-- Stats -->
+<div class="stats">
+    <div class="stat">
+        <div class="stat-num green">&#8377;{{ "%.0f"|format(total_today) }}</div>
+        <div class="stat-label">Today</div>
+    </div>
+    <div class="stat">
+        <div class="stat-num">&#8377;{{ "%.0f"|format(total_week) }}</div>
+        <div class="stat-label">This Week</div>
+    </div>
+    <div class="stat">
+        <div class="stat-num">&#8377;{{ "%.0f"|format(total_month) }}</div>
+        <div class="stat-label">This Month</div>
+    </div>
+    <div class="stat">
+        <div class="stat-num">&#8377;{{ "%.0f"|format(total_all) }}</div>
+        <div class="stat-label">All Time</div>
+    </div>
+</div>
+
+<!-- Last 7 days mini chart -->
+<div class="section-card">
+    <div class="section-title">Last 7 Days</div>
+    <div class="daily-chart" id="dailyChart"></div>
+</div>
+
+<!-- Category breakdown -->
+{% if cat_breakdown %}
+<div class="section-card">
+    <div class="section-title">By Category</div>
+    <div class="cat-list">
+        {% for cat, amount in cat_breakdown %}
+        <div class="cat-row cat-{{ cat }}">
+            <div class="cat-icon">
+                {% if cat == 'food' %}&#127860;{% elif cat == 'transport' %}&#128663;{% elif cat == 'shopping' %}&#128717;{% elif cat == 'bills' %}&#128196;{% elif cat == 'entertainment' %}&#127916;{% elif cat == 'health' %}&#128138;{% elif cat == 'education' %}&#128218;{% else %}&#128178;{% endif %}
+            </div>
+            <div class="cat-info">
+                <div class="cat-name">{{ cat }}</div>
+                <div class="cat-bar-wrap">
+                    <div class="cat-bar" style="width:{{ (amount / total_all * 100) if total_all > 0 else 0 }}%"></div>
+                </div>
+            </div>
+            <div class="cat-amount">&#8377;{{ "%.0f"|format(amount) }}</div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Toolbar -->
+<div class="toolbar">
+    <div class="tabs">
+        <button class="tab active" data-filter="all" onclick="setFilter(this)">All</button>
+        <button class="tab" data-filter="today" onclick="setFilter(this)">Today</button>
+        <button class="tab" data-filter="week" onclick="setFilter(this)">Week</button>
+        <button class="tab" data-filter="month" onclick="setFilter(this)">Month</button>
+    </div>
+    <input class="search-box" type="text" placeholder="Search expenses..." oninput="filterExpenses()" id="searchBox">
+</div>
+
+<!-- Category filter pills -->
+<div style="display:flex; gap:0.35rem; margin-bottom:1rem; flex-wrap:wrap;" id="catPills">
+    <button class="tab active" data-cat="all" onclick="setCatFilter(this)" style="border-radius:6px; border:1px solid #eee; font-size:0.72rem; padding:0.3rem 0.6rem;">All</button>
+    {% for cat, amount in cat_breakdown %}
+    <button class="tab" data-cat="{{ cat }}" onclick="setCatFilter(this)" style="border-radius:6px; border:1px solid #eee; font-size:0.72rem; padding:0.3rem 0.6rem; text-transform:capitalize;">{{ cat }}</button>
+    {% endfor %}
+</div>
+
+<!-- Expense list -->
+<div class="expense-list" id="expenseList">
+    {% for e in expenses|reverse %}
+    <div class="expense-item"
+         data-id="{{ e.id }}"
+         data-date="{{ e.date }}"
+         data-cat="{{ e.category }}"
+         data-reason="{{ e.reason|lower }}"
+         data-reason-raw="{{ e.reason }}"
+         data-amount="{{ e.amount }}">
+        <div class="expense-cat-icon cat-{{ e.category }}">
+            {% if e.category == 'food' %}&#127860;{% elif e.category == 'transport' %}&#128663;{% elif e.category == 'shopping' %}&#128717;{% elif e.category == 'bills' %}&#128196;{% elif e.category == 'entertainment' %}&#127916;{% elif e.category == 'health' %}&#128138;{% elif e.category == 'education' %}&#128218;{% else %}&#128178;{% endif %}
+        </div>
+        <div class="expense-body">
+            <div class="expense-reason">{{ e.reason }}</div>
+            <div class="expense-meta">
+                <span class="expense-date">{{ e.date }}</span>
+                <span class="expense-cat-tag ctag-{{ e.category }}">{{ e.category }}</span>
+            </div>
+        </div>
+        <div class="expense-amount">&#8377;{{ "%.0f"|format(e.amount) }}</div>
+        <button class="edit-btn" onclick="openEditExpense(this)" title="Edit">&#9998;</button>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Edit Expense Modal -->
+<div class="modal-overlay" id="expenseModal">
+    <div class="modal">
+        <h3>Edit Expense</h3>
+        <input type="hidden" id="editExpenseIndex">
+        <div class="modal-field">
+            <label>Date</label>
+            <input type="date" id="editExpenseDate">
+        </div>
+        <div class="modal-field">
+            <label>Amount (₹)</label>
+            <input type="number" id="editExpenseAmount" step="any" min="0">
+        </div>
+        <div class="modal-field">
+            <label>Reason</label>
+            <input type="text" id="editExpenseReason">
+        </div>
+        <div class="modal-field">
+            <label>Category</label>
+            <select id="editExpenseCat">
+                <option value="food">Food</option>
+                <option value="transport">Transport</option>
+                <option value="shopping">Shopping</option>
+                <option value="bills">Bills</option>
+                <option value="entertainment">Entertainment</option>
+                <option value="health">Health</option>
+                <option value="education">Education</option>
+                <option value="other">Other</option>
+            </select>
+        </div>
+        <div class="modal-actions">
+            <button class="modal-btn danger" onclick="deleteExpense()">Delete</button>
+            <div style="flex:1"></div>
+            <button class="modal-btn" onclick="closeExpenseModal()">Cancel</button>
+            <button class="modal-btn primary" onclick="saveExpense()">Save</button>
+        </div>
+    </div>
+</div>
+
+<div class="no-match" id="noMatch">No expenses match your filters.</div>
+
+<!-- Filtered total -->
+<div id="filteredTotal" style="text-align:right; margin-top:0.75rem; font-size:0.8rem; color:#aaa; font-weight:500;"></div>
+
+{% else %}
+<div class="empty-state">
+    <div class="icon">&#8377;</div>
+    <h3>No expenses yet</h3>
+    <p>Record a voice note from the home page to log an expense.</p>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{% if expenses %}
+<script>
+    const ALL_EXPENSES = {{ expenses|tojson }};
+    const DAILY_TOTALS = {{ daily_totals|tojson }};
+    const TODAY = '{{ today }}';
+
+    // ── Daily chart ──
+    function renderDailyChart() {
+        const chart = document.getElementById('dailyChart');
+        const days = [];
+        const dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+        for (let i = 6; i >= 0; i--) {
+            const d = new Date();
+            d.setDate(d.getDate() - i);
+            const key = d.toISOString().slice(0, 10);
+            days.push({ key, label: dayNames[d.getDay()], amount: DAILY_TOTALS[key] || 0, isToday: i === 0 });
+        }
+
+        const maxAmount = Math.max(...days.map(d => d.amount), 1);
+
+        chart.innerHTML = days.map(d => {
+            const h = Math.max((d.amount / maxAmount) * 48, 2);
+            return `
+                <div class="daily-bar-wrap">
+                    <div class="daily-bar ${d.isToday ? 'today-bar' : ''}" style="height:${h}px;" title="${d.key}: ₹${d.amount}"></div>
+                    <div class="daily-label">${d.label}</div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    renderDailyChart();
+
+    // ── Filtering ──
+    let currentPeriod = 'all';
+    let currentCat = 'all';
+
+    function getWeekAgo() {
+        const d = new Date();
+        d.setDate(d.getDate() - 7);
+        return d.toISOString().slice(0, 10);
+    }
+
+    function getMonthStart() {
+        const d = new Date();
+        return d.toISOString().slice(0, 8) + '01';
+    }
+
+    function setFilter(btn) {
+        btn.closest('.tabs').querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        btn.classList.add('active');
+        currentPeriod = btn.dataset.filter;
+        filterExpenses();
+    }
+
+    function setCatFilter(btn) {
+        document.getElementById('catPills').querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        btn.classList.add('active');
+        currentCat = btn.dataset.cat;
+        filterExpenses();
+    }
+
+    function filterExpenses() {
+        const query = document.getElementById('searchBox').value.toLowerCase();
+        const items = document.querySelectorAll('#expenseList .expense-item');
+        const weekAgo = getWeekAgo();
+        const monthStart = getMonthStart();
+        let visible = 0;
+        let filteredSum = 0;
+
+        items.forEach(item => {
+            const date = item.dataset.date;
+            const cat = item.dataset.cat;
+            const reason = item.dataset.reason;
+            const amount = parseFloat(item.dataset.amount) || 0;
+            let show = true;
+
+            if (currentPeriod === 'today') show = date === TODAY;
+            else if (currentPeriod === 'week') show = date >= weekAgo;
+            else if (currentPeriod === 'month') show = date >= monthStart;
+
+            if (show && currentCat !== 'all') show = cat === currentCat;
+            if (show && query) show = reason.includes(query);
+
+            item.style.display = show ? '' : 'none';
+            if (show) { visible++; filteredSum += amount; }
+        });
+
+        document.getElementById('noMatch').style.display = visible === 0 ? 'block' : 'none';
+
+        const label = currentPeriod === 'all' ? '' : currentPeriod === 'today' ? "today's" : currentPeriod === 'week' ? 'this week\'s' : 'this month\'s';
+        const catLabel = currentCat !== 'all' ? ` in ${currentCat}` : '';
+        document.getElementById('filteredTotal').textContent = visible > 0
+            ? `${visible} expense${visible !== 1 ? 's' : ''}${label ? ' ' + label : ''}${catLabel} · Total: ₹${Math.round(filteredSum)}`
+            : '';
+    }
+
+    filterExpenses();
+
+    // ── Edit / Delete ──
+    let editingItem = null;
+
+    function openEditExpense(btn) {
+        editingItem = btn.closest('.expense-item');
+        const id = editingItem.dataset.id;
+        document.getElementById('editExpenseIndex').value = id;
+        document.getElementById('editExpenseDate').value = editingItem.dataset.date;
+        document.getElementById('editExpenseAmount').value = editingItem.dataset.amount;
+        document.getElementById('editExpenseReason').value = editingItem.dataset.reasonRaw;
+        document.getElementById('editExpenseCat').value = editingItem.dataset.cat;
+        document.getElementById('expenseModal').classList.add('active');
+    }
+
+    function closeExpenseModal() {
+        document.getElementById('expenseModal').classList.remove('active');
+        editingItem = null;
+    }
+
+    async function saveExpense() {
+        const id = parseInt(document.getElementById('editExpenseIndex').value);
+        const payload = {
+            id: id,
+            date: document.getElementById('editExpenseDate').value,
+            amount: document.getElementById('editExpenseAmount').value,
+            reason: document.getElementById('editExpenseReason').value,
+            category: document.getElementById('editExpenseCat').value,
+        };
+
+        try {
+            const resp = await fetch('/edit-expense', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+            const data = await resp.json();
+            if (data.success) location.reload();
+        } catch (err) { /* silent */ }
+    }
+
+    async function deleteExpense() {
+        if (!confirm('Delete this expense?')) return;
+        const id = parseInt(document.getElementById('editExpenseIndex').value);
+
+        try {
+            const resp = await fetch('/delete-expense', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: id }),
+            });
+            const data = await resp.json();
+            if (data.success) location.reload();
+        } catch (err) { /* silent */ }
+    }
+
+    document.getElementById('expenseModal').addEventListener('click', function(e) {
+        if (e.target === this) closeExpenseModal();
+    });
+</script>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+
+{% block title %}Login - Tracker{% endblock %}
+
+{% block extra_css %}
+<style>
+    .auth-card {
+        background: #fff;
+        border: 1px solid #eee;
+        border-radius: 14px;
+        padding: 2rem 1.5rem;
+        max-width: 380px;
+        margin: 2rem auto 0;
+    }
+
+    .auth-card h1 {
+        font-size: 1.3rem;
+        text-align: center;
+        margin-bottom: 0.3rem;
+    }
+
+    .auth-subtitle {
+        text-align: center;
+        color: #999;
+        font-size: 0.85rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .auth-field {
+        margin-bottom: 1rem;
+    }
+
+    .auth-field label {
+        display: block;
+        font-size: 0.7rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        color: #aaa;
+        margin-bottom: 0.3rem;
+    }
+
+    .auth-field input {
+        width: 100%;
+        padding: 0.6rem 0.8rem;
+        font-size: 0.88rem;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        background: #fafafa;
+        color: #1a1a1a;
+        font-family: inherit;
+        outline: none;
+        transition: border-color 0.15s;
+    }
+
+    .auth-field input:focus {
+        border-color: #7c5cfc;
+        background: #fff;
+    }
+
+    .auth-btn {
+        width: 100%;
+        padding: 0.65rem;
+        background: #1a1a1a;
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        font-size: 0.88rem;
+        font-weight: 600;
+        cursor: pointer;
+        font-family: inherit;
+        transition: background 0.15s;
+        margin-top: 0.5rem;
+    }
+
+    .auth-btn:hover { background: #333; }
+
+    .auth-footer {
+        text-align: center;
+        margin-top: 1.25rem;
+        font-size: 0.82rem;
+        color: #999;
+    }
+
+    .auth-footer a {
+        color: #7c5cfc;
+        text-decoration: none;
+        font-weight: 500;
+    }
+
+    .auth-footer a:hover { text-decoration: underline; }
+
+    .flash-msg {
+        background: #fef2f2;
+        color: #ef4444;
+        padding: 0.55rem 0.8rem;
+        border-radius: 8px;
+        font-size: 0.82rem;
+        margin-bottom: 1rem;
+        text-align: center;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="auth-card">
+    <h1>Welcome back</h1>
+    <p class="auth-subtitle">Sign in to your account</p>
+
+    {% with messages = get_flashed_messages() %}
+    {% if messages %}
+    {% for msg in messages %}
+    <div class="flash-msg">{{ msg }}</div>
+    {% endfor %}
+    {% endif %}
+    {% endwith %}
+
+    <form method="POST">
+        <div class="auth-field">
+            <label>Email</label>
+            <input type="email" name="email" required autocomplete="email" autofocus>
+        </div>
+        <div class="auth-field">
+            <label>Password</label>
+            <input type="password" name="password" required autocomplete="current-password">
+        </div>
+        <button type="submit" class="auth-btn">Sign in</button>
+    </form>
+
+    <div class="auth-footer">
+        Don't have an account? <a href="/register">Create one</a>
+    </div>
+</div>
+{% endblock %}

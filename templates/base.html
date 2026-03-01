@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Tracker{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #fafafa;
+            color: #1a1a1a;
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        nav {
+            background: #fff;
+            padding: 0 2rem;
+            height: 56px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid #eee;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        nav .logo {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #1a1a1a;
+            text-decoration: none;
+            letter-spacing: -0.3px;
+        }
+
+        nav .nav-links { display: flex; gap: 0.25rem; }
+
+        nav .nav-links a {
+            color: #888;
+            text-decoration: none;
+            font-size: 0.85rem;
+            font-weight: 500;
+            padding: 0.4rem 0.8rem;
+            border-radius: 6px;
+            transition: all 0.15s;
+        }
+
+        nav .nav-links a:hover { color: #1a1a1a; background: #f5f5f5; }
+        nav .nav-links a.active { color: #1a1a1a; background: #f0f0f0; }
+
+        .container {
+            width: 100%;
+            max-width: 640px;
+            margin: 0 auto;
+            padding: 2.5rem 1.25rem 4rem;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1a1a1a;
+            letter-spacing: -0.5px;
+        }
+
+        .subtitle {
+            color: #999;
+            margin-top: 0.25rem;
+            margin-bottom: 2rem;
+            font-size: 0.9rem;
+            font-weight: 400;
+        }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            color: #888;
+            text-decoration: none;
+            font-size: 0.85rem;
+            font-weight: 500;
+            margin-bottom: 1.5rem;
+            transition: color 0.15s;
+        }
+
+        .back-link:hover { color: #1a1a1a; }
+
+        /* Shared modal styles */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.3);
+            z-index: 100;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(2px);
+        }
+
+        .modal-overlay.active { display: flex; }
+
+        .modal {
+            background: #fff;
+            border-radius: 14px;
+            padding: 1.5rem;
+            width: 90%;
+            max-width: 420px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+        }
+
+        .modal h3 {
+            font-size: 1rem;
+            font-weight: 700;
+            margin-bottom: 1.15rem;
+            color: #1a1a1a;
+        }
+
+        .modal-field {
+            margin-bottom: 0.85rem;
+        }
+
+        .modal-field label {
+            display: block;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            color: #aaa;
+            margin-bottom: 0.3rem;
+        }
+
+        .modal-field input,
+        .modal-field select {
+            width: 100%;
+            padding: 0.5rem 0.7rem;
+            font-size: 0.85rem;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            background: #fafafa;
+            color: #1a1a1a;
+            font-family: inherit;
+            outline: none;
+            transition: border-color 0.15s;
+        }
+
+        .modal-field input:focus,
+        .modal-field select:focus {
+            border-color: #7c5cfc;
+            background: #fff;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 0.5rem;
+            justify-content: flex-end;
+            margin-top: 1.25rem;
+        }
+
+        .modal-btn {
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: 1px solid #eee;
+            background: #fff;
+            color: #666;
+            font-family: inherit;
+            transition: all 0.15s;
+        }
+
+        .modal-btn:hover { background: #f5f5f5; }
+
+        .modal-btn.primary {
+            background: #1a1a1a;
+            color: #fff;
+            border-color: #1a1a1a;
+        }
+
+        .modal-btn.primary:hover { background: #333; }
+
+        .modal-btn.danger {
+            background: #fff;
+            color: #ef4444;
+            border-color: #fecaca;
+        }
+
+        .modal-btn.danger:hover { background: #fef2f2; }
+
+        .edit-btn {
+            width: 28px;
+            height: 28px;
+            border: 1px solid #eee;
+            border-radius: 6px;
+            background: #fff;
+            color: #ccc;
+            font-size: 0.75rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: all 0.15s;
+        }
+
+        .edit-btn:hover { border-color: #ccc; color: #666; }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <nav>
+        <a href="/" class="logo">Tracker</a>
+        <div class="nav-links">
+            {% if current_user.is_authenticated %}
+            <a href="/" class="{% if request.path == '/' %}active{% endif %}">Home</a>
+            <a href="/expenses" class="{% if request.path == '/expenses' %}active{% endif %}">Expenses</a>
+            <a href="/tracker" class="{% if request.path == '/tracker' %}active{% endif %}">Tasks</a>
+            <a href="/logout">Logout</a>
+            {% else %}
+            <a href="/login" class="{% if request.path == '/login' %}active{% endif %}">Login</a>
+            <a href="/register" class="{% if request.path == '/register' %}active{% endif %}">Register</a>
+            {% endif %}
+        </div>
+    </nav>
+
+    <div class="container">
+        {% block content %}{% endblock %}
+    </div>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>

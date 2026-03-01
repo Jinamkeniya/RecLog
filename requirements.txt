@@ -1,0 +1,9 @@
+flask
+flask-cors
+flask-login
+flask-sqlalchemy
+bcrypt
+groq
+python-dotenv
+gunicorn
+psycopg2-binary
