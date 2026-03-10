@@ -305,7 +305,7 @@ def upload_recording():
     audio = request.files["audio"]
 
     # Use a temp file — don't persist recordings on server
-    tmp = tempfile.NamedTemporaryFile(suffix=".webm", delete=False)
+    tmp = tempfile.NamedTemporaryFile(suffix=".webm", delete=False, dir="/tmp")
     try:
         audio.save(tmp.name)
         tmp.close()
