@@ -97,6 +97,20 @@ def login():
     return render_template("login.html")
 
 
+@app.route("/demo-login")
+def demo_login():
+    if current_user.is_authenticated:
+        return redirect(url_for("index"))
+
+    user = User.query.filter_by(email="jinamkeniya28@gmail.com").first()
+    if not user:
+        flash("Demo account not found.", "error")
+        return redirect(url_for("login"))
+
+    login_user(user)
+    return redirect(url_for("index"))
+
+
 @app.route("/logout")
 @login_required
 def logout():
