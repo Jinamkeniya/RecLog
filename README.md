@@ -107,24 +107,7 @@ Open [http://localhost:5000](http://localhost:5000) in your browser.
 
 ## Deployment
 
-### Vercel
-
-The app is configured for Vercel serverless deployment. Just push to your repo with `vercel.json` in place.
-
-### Docker
-
-```bash
-docker build -t tracker .
-docker run -p 8000:8000 --env-file .env tracker
-```
-
-### Heroku / Render
-
-Uses `Procfile` with gunicorn:
-
-```
-web: gunicorn app:app --bind 0.0.0.0:$PORT --workers 2
-```
+The app is configured for **Vercel** serverless deployment. Just push to your repo with `vercel.json` in place and set the environment variables in the Vercel dashboard.
 
 ---
 
@@ -147,9 +130,7 @@ Tracker/
 │   └── tracker.html    # Task dashboard
 ├── requirements.txt
 ├── .env.example
-├── vercel.json
-├── Dockerfile
-└── Procfile
+└── vercel.json
 ```
 
 ---
