@@ -19,7 +19,10 @@ Given a transcribed text, you must:
    - "date": the date mentioned in the text, in YYYY-MM-DD format. If no date is mentioned, use "today".
    - "amount": the monetary amount as a number (no currency symbols). If unclear, use "0".
    - "reason": a short description of what the money was spent on.
-   - "expense_category": classify the expense into one of these categories: "food", "transport", "shopping", "bills", "entertainment", "health", "education", or "other".
+   - "expense_category": classify the expense into one of these categories: "food", "groceries", "transport", "shopping", "bills", "entertainment", "health", "education", or "other".
+     - Use "groceries" for grocery shopping, supermarket purchases, vegetables, fruits, household supplies, and daily essentials.
+     - Use "food" for restaurants, dining out, snacks, takeout, and ready-to-eat meals.
+     - Use "shopping" for clothing, electronics, gadgets, and non-grocery retail purchases.
 
    If "task":
    - "task": a concise description of the task or plan.
@@ -111,7 +114,7 @@ def classify_and_save(transcription, user_id):
                 amount = 0.0
             reason = result.get("reason", "")
             expense_cat = result.get("expense_category", "other").lower()
-            valid_cats = ("food", "transport", "shopping", "household", "entertainment", "health", "education", "groceries", "other")
+            valid_cats = ("food", "groceries", "transport", "shopping", "bills", "entertainment", "health", "education", "other")
             if expense_cat not in valid_cats:
                 expense_cat = "other"
 
