@@ -220,6 +220,7 @@
             <a href="/" class="{% if request.path == '/' %}active{% endif %}">Home</a>
             <a href="/expenses" class="{% if request.path == '/expenses' %}active{% endif %}">Expenses</a>
             <a href="/tracker" class="{% if request.path == '/tracker' %}active{% endif %}">Tasks</a>
+            <a href="/notes" class="{% if request.path == '/notes' %}active{% endif %}">Notes</a>
             <a href="/logout">Logout</a>
             {% else %}
             <a href="/login" class="{% if request.path == '/login' %}active{% endif %}">Login</a>

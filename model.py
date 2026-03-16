@@ -9,9 +9,10 @@ client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
 SYSTEM_PROMPT = """You are a smart assistant that classifies and extracts structured data from voice transcriptions.
 
 Given a transcribed text, you must:
-1. Classify it as either "expense" or "task".
+1. Classify it as "expense", "task", or "note".
    - "expense": anything related to spending money, buying something, paying for something, costs, bills, etc.
-   - "task": anything related to planning, to-dos, reminders, deadlines, goals, scheduling, etc.
+   - "task": anything related to planning, to-dos, reminders with deadlines, goals, scheduling, actionable items, etc.
+   - "note": anything else — thoughts, ideas, observations, things to remember, meeting notes, information to save, passwords, references, personal reflections, or anything that is not clearly a monetary expense or an actionable task with a deadline.
 
 2. Extract structured fields based on the category:
 
@@ -29,6 +30,11 @@ Given a transcribed text, you must:
    - "deadline": the deadline or due date mentioned, in YYYY-MM-DD format. If only a day name is given (e.g. "Monday"), calculate the next occurrence. If "today" is mentioned, use today's date. If no deadline is mentioned, use "none".
    - "priority": estimate priority as "high", "medium", or "low" based on urgency cues in the text.
 
+   If "note":
+   - "title": a short summary of the note (5-10 words max).
+   - "content": the full note content, cleaned up and well-formatted from the transcription.
+   - "note_category": classify the note into one of these categories: "idea", "personal", "work", "meeting", "health", or "other".
+
 You MUST respond with valid JSON only, no extra text. Use this exact format:
 
 For expenses:
@@ -36,6 +42,9 @@ For expenses:
 
 For tasks:
 {"category": "task", "task": "...", "deadline": "...", "priority": "..."}
+
+For notes:
+{"category": "note", "title": "...", "content": "...", "note_category": "..."}
 """
 
 MAX_RETRIES = 2
@@ -68,7 +77,7 @@ def _extract_json(raw):
 
 def classify_and_save(transcription, user_id):
     """Classify transcribed text and save structured data to the database."""
-    from models import db, Expense, Task
+    from models import db, Expense, Task, Note
 
     if not transcription or not transcription.strip():
         raise ValueError("Empty transcription — no speech was detected. Please record again.")
@@ -97,7 +106,7 @@ def classify_and_save(transcription, user_id):
 
         category = result.get("category", "").lower()
 
-        if category not in ("expense", "task"):
+        if category not in ("expense", "task", "note"):
             last_error = f"Model returned unknown category '{category}' (attempt {attempt + 1})"
             continue
 
@@ -158,6 +167,30 @@ def classify_and_save(transcription, user_id):
             result["priority"] = priority
             result["created"] = today
             result["status"] = "pending"
+
+        elif category == "note":
+            title = result.get("title", "Untitled")
+            content = result.get("content", "")
+            note_cat = result.get("note_category", "other").lower()
+            valid_note_cats = ("idea", "personal", "work", "meeting", "health", "other")
+            if note_cat not in valid_note_cats:
+                note_cat = "other"
+
+            note = Note(
+                user_id=user_id,
+                title=title,
+                content=content,
+                category=note_cat,
+                created=today,
+            )
+            db.session.add(note)
+            db.session.commit()
+
+            result["id"] = note.id
+            result["title"] = title
+            result["content"] = content
+            result["note_category"] = note_cat
+            result["created"] = today
 
         return result
 

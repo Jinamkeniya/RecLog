@@ -15,7 +15,7 @@ from flask_login import LoginManager, login_user, logout_user, login_required, c
 import bcrypt
 import markdown
 
-from models import db, User, Expense, Task
+from models import db, User, Expense, Task, Note
 from record import stt
 from model import classify_and_save, generate_insights
 
@@ -319,6 +319,93 @@ def delete_task():
     return jsonify({"success": True})
 
 
+@app.route("/notes")
+@login_required
+def notes():
+    note_list = Note.query.filter_by(user_id=current_user.id).all()
+
+    today = datetime.now()
+    today_str = today.strftime("%Y-%m-%d")
+    week_ago = (today - timedelta(days=7)).strftime("%Y-%m-%d")
+
+    notes_data = []
+    for n in note_list:
+        notes_data.append({
+            "id": n.id,
+            "title": n.title,
+            "content": n.content,
+            "category": n.category,
+            "is_pinned": n.is_pinned,
+            "created": n.created,
+        })
+
+    total = len(notes_data)
+    this_week = sum(1 for n in notes_data if n["created"] >= week_ago)
+    pinned = sum(1 for n in notes_data if n["is_pinned"])
+    categories = len(set(n["category"] for n in notes_data)) if notes_data else 0
+
+    return render_template(
+        "notes.html",
+        notes=notes_data,
+        total=total,
+        this_week=this_week,
+        pinned=pinned,
+        categories=categories,
+        today=today_str,
+    )
+
+
+@app.route("/edit-note", methods=["POST"])
+@login_required
+def edit_note():
+    data = request.get_json()
+    note_id = data.get("id")
+
+    note = Note.query.filter_by(id=note_id, user_id=current_user.id).first()
+    if not note:
+        return jsonify({"error": "Note not found"}), 404
+
+    if "title" in data:
+        note.title = data["title"]
+    if "content" in data:
+        note.content = data["content"]
+    if "category" in data:
+        note.category = data["category"]
+
+    db.session.commit()
+    return jsonify({"success": True})
+
+
+@app.route("/delete-note", methods=["POST"])
+@login_required
+def delete_note():
+    data = request.get_json()
+    note_id = data.get("id")
+
+    note = Note.query.filter_by(id=note_id, user_id=current_user.id).first()
+    if not note:
+        return jsonify({"error": "Note not found"}), 404
+
+    db.session.delete(note)
+    db.session.commit()
+    return jsonify({"success": True})
+
+
+@app.route("/pin-note", methods=["POST"])
+@login_required
+def pin_note():
+    data = request.get_json()
+    note_id = data.get("id")
+
+    note = Note.query.filter_by(id=note_id, user_id=current_user.id).first()
+    if not note:
+        return jsonify({"error": "Note not found"}), 404
+
+    note.is_pinned = not note.is_pinned
+    db.session.commit()
+    return jsonify({"is_pinned": note.is_pinned})
+
+
 @app.route("/undo-entry", methods=["POST"])
 @login_required
 def undo_entry():
@@ -330,6 +417,8 @@ def undo_entry():
         entry = Expense.query.filter_by(id=entry_id, user_id=current_user.id).first()
     elif entry_type == "task":
         entry = Task.query.filter_by(id=entry_id, user_id=current_user.id).first()
+    elif entry_type == "note":
+        entry = Note.query.filter_by(id=entry_id, user_id=current_user.id).first()
     else:
         return jsonify({"error": "Invalid entry type"}), 400
 

@@ -14,6 +14,7 @@ class User(UserMixin, db.Model):
 
     expenses = db.relationship("Expense", backref="user", lazy=True)
     tasks = db.relationship("Task", backref="user", lazy=True)
+    notes = db.relationship("Note", backref="user", lazy=True)
 
 
 class Expense(db.Model):
@@ -34,3 +35,14 @@ class Task(db.Model):
     priority = db.Column(db.String(10), nullable=False, default="medium")
     created = db.Column(db.String(10), nullable=False)
     status = db.Column(db.String(10), nullable=False, default="pending")
+
+
+class Note(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    title = db.Column(db.String(200), nullable=False, default="")
+    content = db.Column(db.Text, nullable=False, default="")
+    category = db.Column(db.String(20), nullable=False, default="other")
+    is_pinned = db.Column(db.Boolean, nullable=False, default=False)
+    created = db.Column(db.String(10), nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
