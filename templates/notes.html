@@ -43,6 +43,11 @@
     .stat-num.rose { color: #f43f5e; }
     .stat-num.slate { color: #64748b; }
 
+    @media (max-width: 400px) {
+        .stats { grid-template-columns: repeat(2, 1fr); }
+        .stat .stat-num { font-size: 1.2rem; }
+    }
+
     /* Toolbar */
     .toolbar {
         display: flex;

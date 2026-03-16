@@ -40,6 +40,11 @@
 
     .stat-num.green { color: #10b981; }
 
+    @media (max-width: 400px) {
+        .stats { grid-template-columns: repeat(2, 1fr); }
+        .stat .stat-num { font-size: 1.1rem; }
+    }
+
     /* Category breakdown */
     .section-card {
         background: #fff;
