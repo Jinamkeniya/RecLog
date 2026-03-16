@@ -157,3 +157,38 @@ def classify_and_save(transcription, user_id):
         return result
 
     raise ValueError(last_error or "Classification failed after multiple attempts. Please try recording again.")
+
+
+INSIGHTS_PROMPT = """You are a personal finance analyst. You will be given a user's expense data from the last 30 days as a JSON array.
+
+Analyze the data and provide a short, actionable insights report. Be specific with numbers and percentages. Write in a friendly, conversational tone as if you're a smart financial buddy.
+
+Structure your response as a short report with these sections (use markdown):
+
+**Summary** — One sentence overview of total spending and number of transactions.
+
+**Top Categories** — Which categories they spent the most on, with amounts and percentages.
+
+**Trends** — Any patterns you notice (e.g. spending spikes on certain days, weekend vs weekday, increasing/decreasing trend).
+
+**Tips** — 2-3 specific, actionable suggestions to save money based on their actual data.
+
+Keep it concise — aim for 150-250 words total. Do NOT use any JSON in your response. Use rupee symbol (₹) for amounts."""
+
+
+def generate_insights(expenses_data):
+    """Generate AI-powered spending insights from the last 30 days of expenses."""
+    if not expenses_data:
+        return "No expense data available for the last 30 days. Start recording your expenses to get personalized insights!"
+
+    try:
+        response = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[
+                {"role": "system", "content": INSIGHTS_PROMPT},
+                {"role": "user", "content": json.dumps(expenses_data)},
+            ],
+        )
+        return response.choices[0].message.content.strip()
+    except Exception as e:
+        raise ConnectionError(f"Could not generate insights: {e}")

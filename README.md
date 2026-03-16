@@ -31,6 +31,8 @@ Instead of typing entries manually, you **record a voice note** describing an ex
 - Last 7 days bar chart
 - Filter by time period, category, or search
 - Edit and delete entries
+- **AI Insights** — on-demand analysis of your last 30 days of spending (patterns, top categories, savings tips)
+- **Email insights** — send the AI-generated report to your registered email
 
 ### Task Management
 - View tasks with deadline, priority, and status
@@ -54,7 +56,8 @@ Instead of typing entries manually, you **record a voice note** describing an ex
 | Database | SQLAlchemy — SQLite (local), PostgreSQL (production) |
 | Auth | Flask-Login + bcrypt |
 | Speech-to-Text | Groq Whisper API |
-| Classification | Groq Llama 3.3 70B |
+| Classification & Insights | Groq Llama 3.3 70B |
+| Email | SMTP (Gmail or any provider) |
 | Frontend | Jinja2 templates, vanilla JS |
 
 ---
@@ -91,9 +94,17 @@ GROQ_API_KEY=gsk_your_key_here
 SECRET_KEY=change-me-to-a-random-string
 DATABASE_URL=postgresql://user:password@host:5432/dbname
 FLASK_DEBUG=true
+
+# Optional — for emailing insights
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your-email@gmail.com
+SMTP_PASS=your-app-password
+SMTP_FROM=your-email@gmail.com
 ```
 
 > For local development, you can leave `DATABASE_URL` unset — it defaults to SQLite.
+> The SMTP variables are optional — the insights feature works without them, but the "Email" button requires a configured SMTP provider. For Gmail, use an [App Password](https://support.google.com/accounts/answer/185833).
 
 ### Run
 
@@ -117,7 +128,7 @@ The app is configured for **Vercel** serverless deployment. Just push to your re
 Tracker/
 ├── app.py              # Flask app — routes, auth, API endpoints
 ├── models.py           # Database models (User, Expense, Task)
-├── model.py            # AI classification logic (Groq LLM)
+├── model.py            # AI classification + insights logic (Groq LLM)
 ├── record.py           # Speech-to-text (Groq Whisper)
 ├── api/
 │   └── index.py        # Vercel serverless entry point
@@ -143,6 +154,11 @@ Tracker/
 | `SECRET_KEY` | Flask session secret |
 | `DATABASE_URL` | PostgreSQL connection string (optional — defaults to SQLite) |
 | `FLASK_DEBUG` | Set to `true` for development |
+| `SMTP_HOST` | SMTP server hostname (optional — for email insights) |
+| `SMTP_PORT` | SMTP port, default `587` (optional) |
+| `SMTP_USER` | SMTP login username/email (optional) |
+| `SMTP_PASS` | SMTP login password / app password (optional) |
+| `SMTP_FROM` | Sender email address (optional — defaults to `SMTP_USER`) |
 
 ---
 

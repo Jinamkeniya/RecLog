@@ -1,5 +1,8 @@
 import os
 import tempfile
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 from datetime import datetime, timedelta
 from collections import defaultdict
 
@@ -10,10 +13,11 @@ from flask import Flask, render_template, request, jsonify, redirect, url_for, f
 from flask_cors import CORS
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 import bcrypt
+import markdown
 
 from models import db, User, Expense, Task
 from record import stt
-from model import classify_and_save
+from model import classify_and_save, generate_insights
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret-change-me")
@@ -313,6 +317,83 @@ def delete_task():
     db.session.delete(task)
     db.session.commit()
     return jsonify({"success": True})
+
+
+@app.route("/insights", methods=["POST"])
+@login_required
+def insights():
+    thirty_days_ago = (datetime.now() - timedelta(days=30)).strftime("%Y-%m-%d")
+    recent_expenses = Expense.query.filter(
+        Expense.user_id == current_user.id,
+        Expense.date >= thirty_days_ago,
+    ).all()
+
+    expenses_data = [
+        {"date": e.date, "amount": e.amount, "reason": e.reason, "category": e.category}
+        for e in recent_expenses
+    ]
+
+    try:
+        analysis = generate_insights(expenses_data)
+        return jsonify({"insights": analysis})
+    except ConnectionError as e:
+        return jsonify({"error": str(e)}), 500
+    except Exception as e:
+        return jsonify({"error": "Failed to generate insights. Please try again."}), 500
+
+
+@app.route("/email-insights", methods=["POST"])
+@login_required
+def email_insights():
+    data = request.get_json()
+    insights_text = data.get("insights", "")
+
+    if not insights_text:
+        return jsonify({"error": "No insights to send."}), 400
+
+    smtp_host = os.environ.get("SMTP_HOST")
+    smtp_port = int(os.environ.get("SMTP_PORT", 587))
+    smtp_user = os.environ.get("SMTP_USER")
+    smtp_pass = os.environ.get("SMTP_PASS")
+    from_email = os.environ.get("SMTP_FROM", smtp_user)
+
+    if not all([smtp_host, smtp_user, smtp_pass]):
+        return jsonify({"error": "Email is not configured on the server."}), 500
+
+    insights_html = markdown.markdown(insights_text)
+
+    msg = MIMEMultipart("alternative")
+    msg["Subject"] = f"Your Expense Insights - {datetime.now().strftime('%B %d, %Y')}"
+    msg["From"] = from_email
+    msg["To"] = current_user.email
+
+    text_part = MIMEText(insights_text, "plain")
+    html_part = MIMEText(f"""
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 600px; margin: 0 auto; padding: 2rem;">
+        <div style="border-bottom: 2px solid #10b981; padding-bottom: 1rem; margin-bottom: 1.5rem;">
+            <h1 style="font-size: 1.3rem; color: #1a1a1a; margin: 0;">Tracker - Expense Insights</h1>
+            <p style="color: #999; font-size: 0.85rem; margin-top: 0.25rem;">{datetime.now().strftime('%B %d, %Y')}</p>
+        </div>
+        <div style="font-size: 0.95rem; line-height: 1.7; color: #333;">
+            {insights_html}
+        </div>
+        <div style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #eee; font-size: 0.8rem; color: #aaa;">
+            Sent from Tracker
+        </div>
+    </div>
+    """, "html")
+
+    msg.attach(text_part)
+    msg.attach(html_part)
+
+    try:
+        with smtplib.SMTP(smtp_host, smtp_port) as server:
+            server.starttls()
+            server.login(smtp_user, smtp_pass)
+            server.sendmail(from_email, current_user.email, msg.as_string())
+        return jsonify({"success": True, "email": current_user.email})
+    except Exception as e:
+        return jsonify({"error": f"Failed to send email: {str(e)}"}), 500
 
 
 @app.route("/upload-recording", methods=["POST"])

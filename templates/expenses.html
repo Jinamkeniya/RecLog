@@ -317,6 +317,130 @@
     .ctag-health { background: #ecfdf5; color: #065f46; }
     .ctag-education { background: #e0f2fe; color: #075985; }
     .ctag-other { background: #f5f5f5; color: #666; }
+
+    /* Insights section */
+    .insights-card {
+        background: #fff;
+        border: 1px solid #eee;
+        border-radius: 12px;
+        padding: 1.15rem;
+        margin-bottom: 1.25rem;
+    }
+
+    .insights-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 0.85rem;
+    }
+
+    .insights-header .section-title { margin-bottom: 0; }
+
+    .insights-actions {
+        display: flex;
+        gap: 0.4rem;
+    }
+
+    .insights-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.4rem 0.8rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        border-radius: 7px;
+        border: 1px solid #eee;
+        background: #fff;
+        color: #666;
+        cursor: pointer;
+        font-family: inherit;
+        transition: all 0.15s;
+    }
+
+    .insights-btn:hover { border-color: #ccc; color: #333; }
+
+    .insights-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .insights-btn.primary {
+        background: linear-gradient(135deg, #7c5cfc, #6b4ee0);
+        color: #fff;
+        border-color: transparent;
+    }
+
+    .insights-btn.primary:hover { background: linear-gradient(135deg, #6b4ee0, #5a3dd0); }
+
+    .insights-btn .btn-icon { font-size: 0.85rem; }
+
+    .insights-body {
+        font-size: 0.85rem;
+        line-height: 1.7;
+        color: #555;
+    }
+
+    .insights-body p { margin-bottom: 0.6rem; }
+    .insights-body strong { color: #1a1a1a; }
+
+    .insights-placeholder {
+        text-align: center;
+        padding: 1.5rem 1rem;
+        color: #ccc;
+        font-size: 0.85rem;
+    }
+
+    .insights-placeholder .placeholder-icon {
+        font-size: 1.5rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .insights-loading {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.6rem;
+        padding: 1.5rem 1rem;
+        color: #7c5cfc;
+        font-size: 0.85rem;
+        font-weight: 500;
+    }
+
+    .insights-loading .spinner {
+        width: 18px;
+        height: 18px;
+        border: 2px solid #e8e0ff;
+        border-top-color: #7c5cfc;
+        border-radius: 50%;
+        animation: spin 0.7s linear infinite;
+    }
+
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    .insights-toast {
+        position: fixed;
+        bottom: 1.5rem;
+        left: 50%;
+        transform: translateX(-50%) translateY(100%);
+        padding: 0.6rem 1.2rem;
+        border-radius: 8px;
+        font-size: 0.8rem;
+        font-weight: 500;
+        z-index: 200;
+        transition: transform 0.3s ease, opacity 0.3s ease;
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    .insights-toast.show {
+        transform: translateX(-50%) translateY(0);
+        opacity: 1;
+    }
+
+    .insights-toast.success { background: #ecfdf5; color: #10b981; border: 1px solid #d1fae5; }
+    .insights-toast.error { background: #fef2f2; color: #ef4444; border: 1px solid #fecaca; }
 </style>
 {% endblock %}
 
@@ -377,6 +501,29 @@
     </div>
 </div>
 {% endif %}
+
+<!-- AI Insights -->
+<div class="insights-card">
+    <div class="insights-header">
+        <div class="section-title">AI Insights</div>
+        <div class="insights-actions">
+            <button class="insights-btn" id="emailInsightsBtn" onclick="emailInsights()" disabled title="Generate insights first">
+                <span class="btn-icon">&#9993;</span> Email
+            </button>
+            <button class="insights-btn primary" id="generateInsightsBtn" onclick="generateInsights()">
+                <span class="btn-icon">&#9733;</span> Generate
+            </button>
+        </div>
+    </div>
+    <div id="insightsContent">
+        <div class="insights-placeholder">
+            <div class="placeholder-icon">&#9733;</div>
+            <div>Tap <strong>Generate</strong> to get AI-powered analysis of your last 30 days of spending.</div>
+        </div>
+    </div>
+</div>
+
+<div class="insights-toast" id="insightsToast"></div>
 
 <!-- Toolbar -->
 <div class="toolbar">
@@ -635,6 +782,107 @@
     document.getElementById('expenseModal').addEventListener('click', function(e) {
         if (e.target === this) closeExpenseModal();
     });
+
+    // ── AI Insights ──
+    let currentInsights = null;
+
+    function showInsightsToast(message, type) {
+        const toast = document.getElementById('insightsToast');
+        toast.textContent = message;
+        toast.className = 'insights-toast ' + type + ' show';
+        setTimeout(() => toast.classList.remove('show'), 3500);
+    }
+
+    function markdownToHtml(text) {
+        return text
+            .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+            .replace(/\*(.+?)\*/g, '<em>$1</em>')
+            .replace(/^[-•] (.+)$/gm, '<li>$1</li>')
+            .replace(/(<li>.*<\/li>\n?)+/gs, '<ul>$&</ul>')
+            .replace(/\n{2,}/g, '</p><p>')
+            .replace(/\n/g, '<br>')
+            .replace(/^/, '<p>')
+            .replace(/$/, '</p>')
+            .replace(/<p><\/p>/g, '');
+    }
+
+    async function generateInsights() {
+        const content = document.getElementById('insightsContent');
+        const genBtn = document.getElementById('generateInsightsBtn');
+        const emailBtn = document.getElementById('emailInsightsBtn');
+
+        genBtn.disabled = true;
+        genBtn.innerHTML = '<span class="btn-icon">&#9733;</span> Generating...';
+        emailBtn.disabled = true;
+        currentInsights = null;
+
+        content.innerHTML = `
+            <div class="insights-loading">
+                <div class="spinner"></div>
+                <span>Analyzing your spending patterns...</span>
+            </div>
+        `;
+
+        try {
+            const resp = await fetch('/insights', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+            });
+            const data = await resp.json();
+
+            if (data.error) {
+                content.innerHTML = `
+                    <div class="insights-placeholder" style="color:#ef4444;">
+                        <div class="placeholder-icon">&#9888;</div>
+                        <div>${data.error}</div>
+                    </div>
+                `;
+                return;
+            }
+
+            currentInsights = data.insights;
+            content.innerHTML = `<div class="insights-body">${markdownToHtml(data.insights)}</div>`;
+            emailBtn.disabled = false;
+        } catch (err) {
+            content.innerHTML = `
+                <div class="insights-placeholder" style="color:#ef4444;">
+                    <div class="placeholder-icon">&#9888;</div>
+                    <div>Something went wrong. Please try again.</div>
+                </div>
+            `;
+        } finally {
+            genBtn.disabled = false;
+            genBtn.innerHTML = '<span class="btn-icon">&#9733;</span> Generate';
+        }
+    }
+
+    async function emailInsights() {
+        if (!currentInsights) return;
+
+        const emailBtn = document.getElementById('emailInsightsBtn');
+        emailBtn.disabled = true;
+        emailBtn.innerHTML = '<span class="btn-icon">&#9993;</span> Sending...';
+
+        try {
+            const resp = await fetch('/email-insights', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ insights: currentInsights }),
+            });
+            const data = await resp.json();
+
+            if (data.success) {
+                showInsightsToast(`Insights sent to ${data.email}`, 'success');
+            } else {
+                showInsightsToast(data.error || 'Failed to send email.', 'error');
+            }
+        } catch (err) {
+            showInsightsToast('Network error. Please try again.', 'error');
+        } finally {
+            emailBtn.disabled = false;
+            emailBtn.innerHTML = '<span class="btn-icon">&#9993;</span> Email';
+        }
+    }
 </script>
 {% endif %}
 {% endblock %}
