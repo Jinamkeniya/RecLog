@@ -111,7 +111,7 @@ def classify_and_save(transcription, user_id):
                 amount = 0.0
             reason = result.get("reason", "")
             expense_cat = result.get("expense_category", "other").lower()
-            valid_cats = ("food", "transport", "shopping", "bills", "entertainment", "health", "education", "other")
+            valid_cats = ("food", "transport", "shopping", "household", "entertainment", "health", "education", "groceries", "other")
             if expense_cat not in valid_cats:
                 expense_cat = "other"
 
