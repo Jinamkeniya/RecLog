@@ -319,6 +319,28 @@ def delete_task():
     return jsonify({"success": True})
 
 
+@app.route("/undo-entry", methods=["POST"])
+@login_required
+def undo_entry():
+    data = request.get_json()
+    entry_type = data.get("type")
+    entry_id = data.get("id")
+
+    if entry_type == "expense":
+        entry = Expense.query.filter_by(id=entry_id, user_id=current_user.id).first()
+    elif entry_type == "task":
+        entry = Task.query.filter_by(id=entry_id, user_id=current_user.id).first()
+    else:
+        return jsonify({"error": "Invalid entry type"}), 400
+
+    if not entry:
+        return jsonify({"error": "Entry not found"}), 404
+
+    db.session.delete(entry)
+    db.session.commit()
+    return jsonify({"success": True})
+
+
 @app.route("/insights", methods=["POST"])
 @login_required
 def insights():

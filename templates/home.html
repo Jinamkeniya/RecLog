@@ -259,6 +259,93 @@
     }
 
     .btn-retry:hover { background: #fee2e2; }
+
+    /* Undo bar */
+    .undo-bar {
+        position: fixed;
+        bottom: 1.5rem;
+        left: 50%;
+        transform: translateX(-50%) translateY(calc(100% + 2rem));
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.7rem 0.6rem 0.7rem 1rem;
+        background: #1a1a1a;
+        color: #fff;
+        border-radius: 10px;
+        font-size: 0.82rem;
+        font-weight: 500;
+        box-shadow: 0 8px 30px rgba(0,0,0,0.2);
+        z-index: 100;
+        transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+        max-width: 90vw;
+    }
+
+    .undo-bar.show {
+        transform: translateX(-50%) translateY(0);
+    }
+
+    .undo-bar .undo-text {
+        flex: 1;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .undo-bar .undo-timer {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        position: relative;
+        flex-shrink: 0;
+    }
+
+    .undo-bar .undo-timer svg {
+        transform: rotate(-90deg);
+        width: 28px;
+        height: 28px;
+    }
+
+    .undo-bar .undo-timer circle {
+        fill: none;
+        stroke-width: 2.5;
+    }
+
+    .undo-bar .undo-timer .track { stroke: #333; }
+
+    .undo-bar .undo-timer .progress {
+        stroke: #fff;
+        stroke-dasharray: 75.4;
+        stroke-dashoffset: 0;
+        transition: stroke-dashoffset linear;
+    }
+
+    .undo-bar .undo-timer .timer-num {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.6rem;
+        font-weight: 700;
+        color: #fff;
+    }
+
+    .undo-btn {
+        padding: 0.35rem 0.7rem;
+        background: #fff;
+        color: #1a1a1a;
+        border: none;
+        border-radius: 6px;
+        font-size: 0.78rem;
+        font-weight: 700;
+        cursor: pointer;
+        font-family: inherit;
+        transition: background 0.15s;
+        flex-shrink: 0;
+    }
+
+    .undo-btn:hover { background: #e5e5e5; }
 </style>
 {% endblock %}
 
@@ -319,6 +406,18 @@
         <span id="transcriptionText"></span>
     </div>
 </div>
+
+<div class="undo-bar" id="undoBar">
+    <span class="undo-text" id="undoText"></span>
+    <div class="undo-timer">
+        <svg viewBox="0 0 28 28">
+            <circle class="track" cx="14" cy="14" r="12" />
+            <circle class="progress" id="undoProgress" cx="14" cy="14" r="12" />
+        </svg>
+        <span class="timer-num" id="undoCountdown"></span>
+    </div>
+    <button class="undo-btn" onclick="undoLastEntry()">Undo</button>
+</div>
 {% endblock %}
 
 {% block scripts %}
@@ -328,6 +427,13 @@
     let audioChunks = [];
     let timerInterval = null;
     let secondsElapsed = 0;
+
+    // Undo state
+    const UNDO_DURATION = 10;
+    let lastEntry = null;
+    let undoTimeout = null;
+    let undoCountdownInterval = null;
+    let undoSecondsLeft = 0;
 
     function updateTimerDisplay() {
         secondsElapsed++;
@@ -453,6 +559,7 @@
                         document.getElementById('errorCard').classList.remove('active');
                         showNotification('Saved & classified');
                         showResult(data);
+                        startUndo(data.classification);
                     } catch (err) {
                         processing.classList.remove('active');
                         showError({ error: 'Network error', error_type: 'network', transcription: null });
@@ -480,6 +587,78 @@
             label.classList.remove('active');
             timer.classList.remove('active');
         }
+    }
+
+    // ── Undo last entry ──
+    function startUndo(classification) {
+        dismissUndo();
+
+        const type = classification.category;
+        const id = classification.id;
+        if (!id) return;
+
+        lastEntry = { type, id };
+
+        const label = type === 'expense'
+            ? `Expense: ₹${classification.amount}`
+            : `Task: ${classification.task}`;
+
+        const undoBar = document.getElementById('undoBar');
+        document.getElementById('undoText').textContent = label;
+
+        undoSecondsLeft = UNDO_DURATION;
+        document.getElementById('undoCountdown').textContent = undoSecondsLeft;
+
+        const progress = document.getElementById('undoProgress');
+        const circumference = 2 * Math.PI * 12;
+        progress.style.strokeDasharray = circumference;
+        progress.style.strokeDashoffset = '0';
+        progress.style.transition = 'none';
+
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                progress.style.transition = `stroke-dashoffset ${UNDO_DURATION}s linear`;
+                progress.style.strokeDashoffset = circumference;
+            });
+        });
+
+        undoBar.classList.add('show');
+
+        undoCountdownInterval = setInterval(() => {
+            undoSecondsLeft--;
+            document.getElementById('undoCountdown').textContent = Math.max(undoSecondsLeft, 0);
+        }, 1000);
+
+        undoTimeout = setTimeout(() => dismissUndo(), UNDO_DURATION * 1000);
+    }
+
+    function dismissUndo() {
+        clearTimeout(undoTimeout);
+        clearInterval(undoCountdownInterval);
+        undoTimeout = null;
+        lastEntry = null;
+        document.getElementById('undoBar').classList.remove('show');
+    }
+
+    async function undoLastEntry() {
+        if (!lastEntry) return;
+
+        const { type, id } = lastEntry;
+        dismissUndo();
+
+        try {
+            const resp = await fetch('/undo-entry', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ type, id }),
+            });
+            const data = await resp.json();
+
+            if (data.success) {
+                document.getElementById('resultCard').style.display = 'none';
+                showNotification('Entry undone');
+            }
+        } catch (err) { /* silent */ }
     }
 </script>
 {% endblock %}

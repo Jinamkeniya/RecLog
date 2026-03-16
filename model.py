@@ -125,6 +125,7 @@ def classify_and_save(transcription, user_id):
             db.session.add(expense)
             db.session.commit()
 
+            result["id"] = expense.id
             result["date"] = date
             result["amount"] = str(amount)
             result["expense_category"] = expense_cat
@@ -149,6 +150,7 @@ def classify_and_save(transcription, user_id):
             db.session.add(task)
             db.session.commit()
 
+            result["id"] = task.id
             result["deadline"] = deadline
             result["priority"] = priority
             result["created"] = today
