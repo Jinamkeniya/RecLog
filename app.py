@@ -24,6 +24,10 @@ if app.config["SQLALCHEMY_DATABASE_URI"].startswith("postgres://"):
         "postgres://", "postgresql://", 1
     )
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+app.config["REMEMBER_COOKIE_DURATION"] = timedelta(days=30)
+app.config["REMEMBER_COOKIE_SECURE"] = True
+app.config["REMEMBER_COOKIE_HTTPONLY"] = True
+app.config["REMEMBER_COOKIE_SAMESITE"] = "Lax"
 
 CORS(app)
 db.init_app(app)
@@ -88,7 +92,8 @@ def login():
 
         user = User.query.filter_by(email=email).first()
         if user and bcrypt.checkpw(password.encode("utf-8"), user.password_hash.encode("utf-8")):
-            login_user(user)
+            remember = request.form.get("remember") == "1"
+            login_user(user, remember=remember)
             next_page = request.args.get("next")
             return redirect(next_page or url_for("index"))
 

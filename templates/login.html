@@ -99,6 +99,28 @@
         margin-bottom: 1rem;
         text-align: center;
     }
+
+    .remember-row {
+        margin-bottom: 0.25rem;
+    }
+
+    .remember-label {
+        display: flex;
+        align-items: center;
+        gap: 0.45rem;
+        font-size: 0.82rem;
+        color: #666;
+        cursor: pointer;
+        user-select: none;
+    }
+
+    .remember-label input[type="checkbox"] {
+        width: 15px;
+        height: 15px;
+        accent-color: #7c5cfc;
+        cursor: pointer;
+        margin: 0;
+    }
 </style>
 {% endblock %}
 
@@ -123,6 +145,13 @@
         <div class="auth-field">
             <label>Password</label>
             <input type="password" name="password" required autocomplete="current-password">
+        </div>
+        <div class="remember-row">
+            <label class="remember-label">
+                <input type="checkbox" name="remember" value="1">
+                <span class="checkmark"></span>
+                Keep me signed in
+            </label>
         </div>
         <button type="submit" class="auth-btn">Sign in</button>
     </form>
