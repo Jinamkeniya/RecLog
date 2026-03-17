@@ -10,6 +10,16 @@ SYSTEM_PROMPT = """You are a smart assistant that classifies and extracts struct
 
 The transcription will be in English, Hindi, or Hinglish (a mix of both). Regardless of the input language, you must always respond with field values in English.
 
+The transcription may contain numbers spoken in Hindi words. You MUST convert all Hindi number words to their numeric digits. Examples:
+- "do sau" or "दो सौ" = 200
+- "pachaas" or "पचास" = 50
+- "dedh hazaar" or "डेढ़ हज़ार" = 1500
+- "saadhe teen sau" or "साढ़े तीन सौ" = 350
+- "paanch sau pachaas" or "पांच सौ पचास" = 550
+- "hazaar" or "हज़ार" = 1000
+- "das hazaar" or "दस हज़ार" = 10000
+Always output the final numeric value as a number, never as Hindi words.
+
 Given a transcribed text, you must:
 1. Classify it as either "expense" or "task".
    - "expense": anything related to spending money, buying something, paying for something, costs, bills, etc.
