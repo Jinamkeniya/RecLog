@@ -71,6 +71,7 @@
         background: none;
         transition: all 0.15s;
         border-right: 1px solid #eee;
+        font-family: inherit;
     }
 
     .tab:last-child { border-right: none; }
@@ -93,6 +94,54 @@
 
     .search-box:focus { border-color: #ccc; }
     .search-box::placeholder { color: #ccc; }
+
+    /* Date range & month filter */
+    .filter-row {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+        flex-wrap: wrap;
+    }
+
+    .filter-row label {
+        font-size: 0.7rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+        color: #aaa;
+    }
+
+    .filter-row input[type="date"],
+    .filter-row select {
+        padding: 0.4rem 0.6rem;
+        font-size: 0.78rem;
+        border: 1px solid #eee;
+        border-radius: 8px;
+        background: #fff;
+        color: #1a1a1a;
+        font-family: inherit;
+        outline: none;
+        transition: border-color 0.15s;
+    }
+
+    .filter-row input[type="date"]:focus,
+    .filter-row select:focus { border-color: #ccc; }
+
+    .filter-clear-btn {
+        padding: 0.35rem 0.7rem;
+        font-size: 0.72rem;
+        font-weight: 600;
+        border: 1px solid #eee;
+        border-radius: 6px;
+        background: #fff;
+        color: #999;
+        cursor: pointer;
+        font-family: inherit;
+        transition: all 0.15s;
+    }
+
+    .filter-clear-btn:hover { border-color: #ccc; color: #555; }
 
     /* Calendar */
     .calendar-section {
@@ -202,7 +251,20 @@
     }
 
     /* Task list */
-    .task-list { display: flex; flex-direction: column; gap: 0.5rem; }
+    .task-list { display: flex; flex-direction: column; gap: 0; }
+
+    .deadline-group-header {
+        font-size: 0.72rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+        color: #aaa;
+        padding: 1rem 0 0.4rem 0.25rem;
+        border-bottom: 1px solid #f0f0f0;
+        margin-bottom: 0.45rem;
+    }
+
+    .deadline-group-header:first-child { padding-top: 0; }
 
     .task-item {
         display: flex;
@@ -213,6 +275,7 @@
         border: 1px solid #eee;
         border-radius: 10px;
         transition: all 0.15s;
+        margin-bottom: 0.5rem;
     }
 
     .task-item:hover { border-color: #ddd; }
@@ -241,7 +304,7 @@
     }
 
     .task-check.checked::after {
-        content: '✓';
+        content: '\u2713';
         color: #fff;
         font-size: 0.65rem;
         font-weight: 700;
@@ -378,6 +441,15 @@
     }
 
     .add-btn-inline:hover { background: linear-gradient(135deg, #6b4ee0, #5a3dd0); }
+
+    /* Filtered total */
+    #filteredTotal {
+        text-align: right;
+        margin-top: 0.75rem;
+        font-size: 0.8rem;
+        color: #aaa;
+        font-weight: 500;
+    }
 </style>
 {% endblock %}
 
@@ -428,53 +500,42 @@
 
 <!-- Toolbar -->
 <div class="toolbar">
-    <div class="tabs">
+    <div class="tabs" id="statusTabs">
         <button class="tab active" data-filter="all" onclick="setFilter(this)">All</button>
         <button class="tab" data-filter="pending" onclick="setFilter(this)">Pending</button>
         <button class="tab" data-filter="done" onclick="setFilter(this)">Done</button>
         <button class="tab" data-filter="overdue" onclick="setFilter(this)">Overdue</button>
     </div>
-    <input class="search-box" type="text" placeholder="Search tasks..." oninput="filterTasks()">
+    <input class="search-box" type="text" placeholder="Search tasks..." oninput="filterTasks()" id="searchBox">
 </div>
 
-<!-- Task list -->
-<div class="task-list" id="taskList">
-    {% for t in tasks|reverse %}
-    <div class="task-item {% if t.status == 'done' %}done{% endif %}"
-         data-id="{{ t.id }}"
-         data-status="{{ t.status }}"
-         data-deadline="{{ t.deadline }}"
-         data-priority="{{ t.priority }}"
-         data-name="{{ t.task|lower }}">
-        <div class="task-check {% if t.status == 'done' %}checked{% endif %}"
-             onclick="toggleTask(this)"></div>
-        <div class="task-body">
-            <div class="task-name">{{ t.task }}</div>
-            <div class="task-meta">
-                {% if t.deadline != 'none' and t.deadline != '' %}
-                    {% if t.status != 'done' and t.deadline < today %}
-                    <span class="task-tag tag-overdue">Overdue · {{ t.deadline }}</span>
-                    {% else %}
-                    <span class="task-tag tag-deadline">{{ t.deadline }}</span>
-                    {% endif %}
-                {% else %}
-                <span class="task-tag tag-no-deadline">No deadline</span>
-                {% endif %}
-                <span class="task-tag tag-{{ t.priority }}">{{ t.priority }}</span>
-                {% if t.created %}
-                <span class="task-created">Added {{ t.created }}</span>
-                {% endif %}
-            </div>
-        </div>
-        <button class="edit-btn" onclick="openEditTask(this)" title="Edit"
-                data-task-name="{{ t.task }}"
-                data-task-deadline="{{ t.deadline }}"
-                data-task-priority="{{ t.priority }}">&#9998;</button>
-    </div>
-    {% endfor %}
+<!-- Deadline filters: month + date range -->
+<div class="filter-row">
+    <label>Month</label>
+    <select id="monthFilter" onchange="filterTasks()">
+        <option value="all">All months</option>
+    </select>
+    <label style="margin-left:0.5rem;">From</label>
+    <input type="date" id="dateFrom" onchange="filterTasks()">
+    <label>To</label>
+    <input type="date" id="dateTo" onchange="filterTasks()">
+    <button class="filter-clear-btn" onclick="clearDateFilters()">Clear</button>
 </div>
+
+<!-- Priority filter pills -->
+<div style="display:flex; gap:0.35rem; margin-bottom:1rem; flex-wrap:wrap;" id="priorityPills">
+    <button class="tab active" data-priority="all" onclick="setPriorityFilter(this)" style="border-radius:6px; border:1px solid #eee; font-size:0.72rem; padding:0.3rem 0.6rem;">All</button>
+    <button class="tab" data-priority="high" onclick="setPriorityFilter(this)" style="border-radius:6px; border:1px solid #eee; font-size:0.72rem; padding:0.3rem 0.6rem;">High</button>
+    <button class="tab" data-priority="medium" onclick="setPriorityFilter(this)" style="border-radius:6px; border:1px solid #eee; font-size:0.72rem; padding:0.3rem 0.6rem;">Medium</button>
+    <button class="tab" data-priority="low" onclick="setPriorityFilter(this)" style="border-radius:6px; border:1px solid #eee; font-size:0.72rem; padding:0.3rem 0.6rem;">Low</button>
+</div>
+
+<!-- Task list (rendered by JS with deadline grouping) -->
+<div class="task-list" id="taskList"></div>
 
 <div class="no-match" id="noMatch">No tasks match your filters.</div>
+
+<div id="filteredTotal"></div>
 
 <!-- Edit Task Modal -->
 <div class="modal-overlay" id="taskModal">
@@ -601,44 +662,187 @@
     const ALL_TASKS = {{ tasks|tojson }};
     const TODAY = '{{ today }}';
 
+    // ── Populate month filter from deadlines ──
+    function populateMonthFilter() {
+        const months = new Set();
+        ALL_TASKS.forEach(t => {
+            if (t.deadline && t.deadline !== 'none' && t.deadline !== '') {
+                months.add(t.deadline.slice(0, 7));
+            }
+        });
+        const sorted = [...months].sort().reverse();
+        const sel = document.getElementById('monthFilter');
+        const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        sorted.forEach(m => {
+            const [y, mo] = m.split('-');
+            const opt = document.createElement('option');
+            opt.value = m;
+            opt.textContent = `${monthNames[parseInt(mo) - 1]} ${y}`;
+            sel.appendChild(opt);
+        });
+    }
+    populateMonthFilter();
+
     // ── Filter / Search ──
     let currentFilter = 'all';
+    let currentPriority = 'all';
 
     function setFilter(btn) {
-        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.getElementById('statusTabs').querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
         btn.classList.add('active');
         currentFilter = btn.dataset.filter;
+        document.getElementById('monthFilter').value = 'all';
+        document.getElementById('dateFrom').value = '';
+        document.getElementById('dateTo').value = '';
         filterTasks();
     }
 
+    function setPriorityFilter(btn) {
+        document.getElementById('priorityPills').querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        btn.classList.add('active');
+        currentPriority = btn.dataset.priority;
+        filterTasks();
+    }
+
+    function clearDateFilters() {
+        document.getElementById('monthFilter').value = 'all';
+        document.getElementById('dateFrom').value = '';
+        document.getElementById('dateTo').value = '';
+        filterTasks();
+    }
+
+    function formatDeadlineHeading(dateStr) {
+        if (!dateStr || dateStr === 'none' || dateStr === '') return 'No deadline';
+        const d = new Date(dateStr + 'T00:00:00');
+        const dayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+        const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        const day = dayNames[d.getDay()];
+        const date = d.getDate();
+        const month = monthNames[d.getMonth()];
+        const year = d.getFullYear();
+        if (dateStr === TODAY) return `Today \u2014 ${date} ${month} ${year}`;
+        if (dateStr < TODAY) return `Overdue \u2014 ${day}, ${date} ${month} ${year}`;
+        return `${day}, ${date} ${month} ${year}`;
+    }
+
     function filterTasks() {
-        const query = document.querySelector('.search-box').value.toLowerCase();
-        const items = document.querySelectorAll('#taskList .task-item');
-        let visible = 0;
+        const query = document.getElementById('searchBox').value.toLowerCase();
+        const selectedMonth = document.getElementById('monthFilter').value;
+        const dateFrom = document.getElementById('dateFrom').value;
+        const dateTo = document.getElementById('dateTo').value;
 
-        items.forEach(item => {
-            const status = item.dataset.status;
-            const deadline = item.dataset.deadline;
-            const name = item.dataset.name;
-
+        const filtered = ALL_TASKS.filter(t => {
             let show = true;
+            const deadline = t.deadline || '';
+            const hasDeadline = deadline !== 'none' && deadline !== '';
 
-            if (currentFilter === 'pending') show = status !== 'done';
-            else if (currentFilter === 'done') show = status === 'done';
+            if (currentFilter === 'pending') show = t.status !== 'done';
+            else if (currentFilter === 'done') show = t.status === 'done';
             else if (currentFilter === 'overdue') {
-                show = status !== 'done' && deadline !== 'none' && deadline !== '' && deadline < TODAY;
+                show = t.status !== 'done' && hasDeadline && deadline < TODAY;
             }
 
+            if (show && selectedMonth !== 'all') {
+                show = hasDeadline && deadline.startsWith(selectedMonth);
+            }
+            if (show && dateFrom) {
+                show = hasDeadline && deadline >= dateFrom;
+            }
+            if (show && dateTo) {
+                show = hasDeadline && deadline <= dateTo;
+            }
+            if (show && currentPriority !== 'all') {
+                show = t.priority === currentPriority;
+            }
             if (show && query) {
-                show = name.includes(query);
+                show = t.task.toLowerCase().includes(query);
             }
 
-            item.style.display = show ? '' : 'none';
-            if (show) visible++;
+            return show;
         });
 
-        document.getElementById('noMatch').style.display = visible === 0 ? 'block' : 'none';
+        // Sort: tasks with deadlines first (ascending), then no-deadline tasks
+        filtered.sort((a, b) => {
+            const aHas = a.deadline && a.deadline !== 'none' && a.deadline !== '';
+            const bHas = b.deadline && b.deadline !== 'none' && b.deadline !== '';
+            if (aHas && bHas) return a.deadline.localeCompare(b.deadline);
+            if (aHas && !bHas) return -1;
+            if (!aHas && bHas) return 1;
+            return 0;
+        });
+
+        renderTaskList(filtered);
+
+        document.getElementById('noMatch').style.display = filtered.length === 0 ? 'block' : 'none';
+        document.getElementById('filteredTotal').textContent = filtered.length > 0
+            ? `${filtered.length} task${filtered.length !== 1 ? 's' : ''} shown`
+            : '';
     }
+
+    function escapeHtml(str) {
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    }
+
+    function renderTaskList(tasks) {
+        const list = document.getElementById('taskList');
+        if (tasks.length === 0) {
+            list.innerHTML = '';
+            return;
+        }
+
+        const grouped = {};
+        tasks.forEach(t => {
+            const key = (t.deadline && t.deadline !== 'none' && t.deadline !== '') ? t.deadline : '_none';
+            if (!grouped[key]) grouped[key] = [];
+            grouped[key].push(t);
+        });
+
+        let html = '';
+        for (const key of Object.keys(grouped)) {
+            const heading = key === '_none' ? 'No deadline' : formatDeadlineHeading(key);
+            html += `<div class="deadline-group-header">${heading}</div>`;
+            for (const t of grouped[key]) {
+                const isDone = t.status === 'done';
+                const hasDeadline = t.deadline && t.deadline !== 'none' && t.deadline !== '';
+                const isOverdue = !isDone && hasDeadline && t.deadline < TODAY;
+
+                let deadlineTag = '';
+                if (isOverdue) {
+                    deadlineTag = `<span class="task-tag tag-overdue">Overdue \u00B7 ${t.deadline}</span>`;
+                } else if (hasDeadline) {
+                    deadlineTag = `<span class="task-tag tag-deadline">${t.deadline}</span>`;
+                } else {
+                    deadlineTag = `<span class="task-tag tag-no-deadline">No deadline</span>`;
+                }
+
+                html += `
+                <div class="task-item ${isDone ? 'done' : ''}"
+                     data-id="${t.id}"
+                     data-status="${t.status}"
+                     data-deadline="${t.deadline}"
+                     data-priority="${t.priority}"
+                     data-task-name="${escapeHtml(t.task)}"
+                     data-task-deadline="${t.deadline}"
+                     data-task-priority="${t.priority}">
+                    <div class="task-check ${isDone ? 'checked' : ''}" onclick="toggleTask(this)"></div>
+                    <div class="task-body">
+                        <div class="task-name">${escapeHtml(t.task)}</div>
+                        <div class="task-meta">
+                            ${deadlineTag}
+                            <span class="task-tag tag-${t.priority}">${t.priority}</span>
+                            ${t.created ? `<span class="task-created">Added ${t.created}</span>` : ''}
+                        </div>
+                    </div>
+                    <button class="edit-btn" onclick="openEditTask(this)" title="Edit">&#9998;</button>
+                </div>`;
+            }
+        }
+        list.innerHTML = html;
+    }
+
+    filterTasks();
 
     // ── Toggle task ──
     async function toggleTask(el) {
@@ -654,16 +858,8 @@
             const data = await resp.json();
             if (data.error) return;
 
-            const newStatus = data.status;
-            item.dataset.status = newStatus;
-
-            if (newStatus === 'done') {
-                el.classList.add('checked');
-                item.classList.add('done');
-            } else {
-                el.classList.remove('checked');
-                item.classList.remove('done');
-            }
+            const task = ALL_TASKS.find(t => t.id === id);
+            if (task) task.status = data.status;
 
             filterTasks();
         } catch (err) { /* silently fail */ }
@@ -767,7 +963,7 @@
                 <div class="task-item ${t.status === 'done' ? 'done' : ''}" style="padding:0.6rem 0.8rem;">
                     <div class="task-check ${t.status === 'done' ? 'checked' : ''}" style="pointer-events:none;"></div>
                     <div class="task-body">
-                        <div class="task-name">${t.task}</div>
+                        <div class="task-name">${escapeHtml(t.task)}</div>
                         <div class="task-meta">
                             <span class="task-tag tag-${t.priority}">${t.priority}</span>
                         </div>
@@ -786,10 +982,10 @@
         const item = btn.closest('.task-item');
         const id = item.dataset.id;
         document.getElementById('editTaskIndex').value = id;
-        document.getElementById('editTaskName').value = btn.dataset.taskName;
-        const dl = btn.dataset.taskDeadline;
+        document.getElementById('editTaskName').value = item.dataset.taskName;
+        const dl = item.dataset.taskDeadline;
         document.getElementById('editTaskDeadline').value = (dl && dl !== 'none') ? dl : '';
-        document.getElementById('editTaskPriority').value = btn.dataset.taskPriority || 'medium';
+        document.getElementById('editTaskPriority').value = item.dataset.taskPriority || 'medium';
         document.getElementById('taskModal').classList.add('active');
     }
 
