@@ -8,6 +8,8 @@ client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
 
 SYSTEM_PROMPT = """You are a smart assistant that classifies and extracts structured data from voice transcriptions.
 
+The transcription will be in English, Hindi, or Hinglish (a mix of both). Regardless of the input language, you must always respond with field values in English.
+
 Given a transcribed text, you must:
 1. Classify it as either "expense" or "task".
    - "expense": anything related to spending money, buying something, paying for something, costs, bills, etc.
