@@ -252,12 +252,15 @@ def add_expense():
     reason = data.get("reason", "").strip()
     category = data.get("category", "other").lower()
 
-    if not date or not reason:
-        return jsonify({"error": "Date and reason are required."}), 400
+    if not date:
+        return jsonify({"error": "Date is required."}), 400
 
     valid_cats = ("food", "groceries", "transport", "shopping", "bills", "entertainment", "health", "education", "other")
     if category not in valid_cats:
         category = "other"
+
+    if not reason:
+        reason = category.capitalize()
 
     expense = Expense(
         user_id=current_user.id,

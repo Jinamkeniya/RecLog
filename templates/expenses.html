@@ -109,6 +109,8 @@
 
     .cat-food .cat-icon { background: #fef3c7; color: #d97706; }
     .cat-food .cat-bar { background: #f59e0b; }
+    .cat-groceries .cat-icon { background: #d1fae5; color: #059669; }
+    .cat-groceries .cat-bar { background: #10b981; }
     .cat-transport .cat-icon { background: #dbeafe; color: #3b82f6; }
     .cat-transport .cat-bar { background: #3b82f6; }
     .cat-shopping .cat-icon { background: #fce7f3; color: #ec4899; }
@@ -212,8 +214,69 @@
     .search-box:focus { border-color: #ccc; }
     .search-box::placeholder { color: #ccc; }
 
+    /* Date range & month filter */
+    .filter-row {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+        flex-wrap: wrap;
+    }
+
+    .filter-row label {
+        font-size: 0.7rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+        color: #aaa;
+    }
+
+    .filter-row input[type="date"],
+    .filter-row select {
+        padding: 0.4rem 0.6rem;
+        font-size: 0.78rem;
+        border: 1px solid #eee;
+        border-radius: 8px;
+        background: #fff;
+        color: #1a1a1a;
+        font-family: inherit;
+        outline: none;
+        transition: border-color 0.15s;
+    }
+
+    .filter-row input[type="date"]:focus,
+    .filter-row select:focus { border-color: #ccc; }
+
+    .filter-clear-btn {
+        padding: 0.35rem 0.7rem;
+        font-size: 0.72rem;
+        font-weight: 600;
+        border: 1px solid #eee;
+        border-radius: 6px;
+        background: #fff;
+        color: #999;
+        cursor: pointer;
+        font-family: inherit;
+        transition: all 0.15s;
+    }
+
+    .filter-clear-btn:hover { border-color: #ccc; color: #555; }
+
     /* Expense list */
-    .expense-list { display: flex; flex-direction: column; gap: 0.5rem; }
+    .expense-list { display: flex; flex-direction: column; gap: 0; }
+
+    .date-group-header {
+        font-size: 0.72rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+        color: #aaa;
+        padding: 1rem 0 0.4rem 0.25rem;
+        border-bottom: 1px solid #f0f0f0;
+        margin-bottom: 0.45rem;
+    }
+
+    .date-group-header:first-child { padding-top: 0; }
 
     .expense-item {
         display: flex;
@@ -224,6 +287,7 @@
         border: 1px solid #eee;
         border-radius: 10px;
         transition: border-color 0.15s;
+        margin-bottom: 0.5rem;
     }
 
     .expense-item:hover { border-color: #ddd; }
@@ -310,6 +374,7 @@
 
     /* Category tag colors */
     .ctag-food { background: #fef3c7; color: #92400e; }
+    .ctag-groceries { background: #d1fae5; color: #065f46; }
     .ctag-transport { background: #dbeafe; color: #1e40af; }
     .ctag-shopping { background: #fce7f3; color: #9d174d; }
     .ctag-bills { background: #fef2f2; color: #991b1b; }
@@ -531,9 +596,7 @@
     <div class="cat-list">
         {% for cat, amount in cat_breakdown %}
         <div class="cat-row cat-{{ cat }}">
-            <div class="cat-icon">
-                {% if cat == 'food' %}&#127860;{% elif cat == 'transport' %}&#128663;{% elif cat == 'shopping' %}&#128717;{% elif cat == 'bills' %}&#128196;{% elif cat == 'entertainment' %}&#127916;{% elif cat == 'health' %}&#128138;{% elif cat == 'education' %}&#128218;{% else %}&#128178;{% endif %}
-            </div>
+            <div class="cat-icon" data-cat="{{ cat }}"></div>
             <div class="cat-info">
                 <div class="cat-name">{{ cat }}</div>
                 <div class="cat-bar-wrap">
@@ -581,6 +644,19 @@
     <input class="search-box" type="text" placeholder="Search expenses..." oninput="filterExpenses()" id="searchBox">
 </div>
 
+<!-- Month filter + Date range -->
+<div class="filter-row">
+    <label>Month</label>
+    <select id="monthFilter" onchange="filterExpenses()">
+        <option value="all">All months</option>
+    </select>
+    <label style="margin-left:0.5rem;">From</label>
+    <input type="date" id="dateFrom" onchange="filterExpenses()">
+    <label>To</label>
+    <input type="date" id="dateTo" onchange="filterExpenses()">
+    <button class="filter-clear-btn" onclick="clearDateFilters()">Clear</button>
+</div>
+
 <!-- Category filter pills -->
 <div style="display:flex; gap:0.35rem; margin-bottom:1rem; flex-wrap:wrap;" id="catPills">
     <button class="tab active" data-cat="all" onclick="setCatFilter(this)" style="border-radius:6px; border:1px solid #eee; font-size:0.72rem; padding:0.3rem 0.6rem;">All</button>
@@ -589,31 +665,8 @@
     {% endfor %}
 </div>
 
-<!-- Expense list -->
-<div class="expense-list" id="expenseList">
-    {% for e in expenses|reverse %}
-    <div class="expense-item"
-         data-id="{{ e.id }}"
-         data-date="{{ e.date }}"
-         data-cat="{{ e.category }}"
-         data-reason="{{ e.reason|lower }}"
-         data-reason-raw="{{ e.reason }}"
-         data-amount="{{ e.amount }}">
-        <div class="expense-cat-icon cat-{{ e.category }}">
-            {% if e.category == 'food' %}&#127860;{% elif e.category == 'transport' %}&#128663;{% elif e.category == 'shopping' %}&#128717;{% elif e.category == 'bills' %}&#128196;{% elif e.category == 'entertainment' %}&#127916;{% elif e.category == 'health' %}&#128138;{% elif e.category == 'education' %}&#128218;{% else %}&#128178;{% endif %}
-        </div>
-        <div class="expense-body">
-            <div class="expense-reason">{{ e.reason }}</div>
-            <div class="expense-meta">
-                <span class="expense-date">{{ e.date }}</span>
-                <span class="expense-cat-tag ctag-{{ e.category }}">{{ e.category }}</span>
-            </div>
-        </div>
-        <div class="expense-amount">&#8377;{{ "%.0f"|format(e.amount) }}</div>
-        <button class="edit-btn" onclick="openEditExpense(this)" title="Edit">&#9998;</button>
-    </div>
-    {% endfor %}
-</div>
+<!-- Expense list (rendered by JS with date grouping) -->
+<div class="expense-list" id="expenseList"></div>
 
 <!-- Edit Expense Modal -->
 <div class="modal-overlay" id="expenseModal">
@@ -625,7 +678,7 @@
             <input type="date" id="editExpenseDate">
         </div>
         <div class="modal-field">
-            <label>Amount (₹)</label>
+            <label>Amount (&#8377;)</label>
             <input type="number" id="editExpenseAmount" step="any" min="0">
         </div>
         <div class="modal-field">
@@ -636,6 +689,7 @@
             <label>Category</label>
             <select id="editExpenseCat">
                 <option value="food">Food</option>
+                <option value="groceries">Groceries</option>
                 <option value="transport">Transport</option>
                 <option value="shopping">Shopping</option>
                 <option value="bills">Bills</option>
@@ -681,8 +735,8 @@
             <input type="number" id="addExpenseAmount" step="any" min="0" placeholder="0">
         </div>
         <div class="modal-field">
-            <label>Reason</label>
-            <input type="text" id="addExpenseReason" placeholder="What did you spend on?">
+            <label>Reason <span style="font-weight:400; text-transform:none; letter-spacing:0; color:#ccc;">(optional)</span></label>
+            <input type="text" id="addExpenseReason" placeholder="Defaults to category name">
         </div>
         <div class="modal-field">
             <label>Category</label>
@@ -710,6 +764,28 @@
 
 {% block scripts %}
 <script>
+    const CAT_ICONS = {
+        food: '\u{1F374}',
+        groceries: '\u{1F6D2}',
+        transport: '\u{1F697}',
+        shopping: '\u{1F6CD}',
+        bills: '\u{1F4C4}',
+        entertainment: '\u{1F3AC}',
+        health: '\u{1F48A}',
+        education: '\u{1F4DA}',
+        other: '\u{1F4E6}',
+    };
+
+    function catIcon(cat) {
+        return CAT_ICONS[cat] || CAT_ICONS.other;
+    }
+
+    // Fill icons rendered server-side in the category breakdown
+    document.querySelectorAll('.cat-icon[data-cat]').forEach(el => {
+        el.textContent = catIcon(el.dataset.cat);
+    });
+
+    // ── Add Expense ──
     function openAddExpense() {
         const today = new Date().toISOString().slice(0, 10);
         document.getElementById('addExpenseDate').value = today;
@@ -729,8 +805,8 @@
         const reason = document.getElementById('addExpenseReason').value.trim();
         const category = document.getElementById('addExpenseCat').value;
 
-        if (!date || !reason) {
-            alert('Please fill in the date and reason.');
+        if (!date) {
+            alert('Please select a date.');
             return;
         }
 
@@ -787,7 +863,7 @@
             const h = Math.max((d.amount / maxAmount) * 48, 2);
             return `
                 <div class="daily-bar-wrap">
-                    <div class="daily-bar ${d.isToday ? 'today-bar' : ''}" style="height:${h}px;" title="${d.key}: ₹${d.amount}"></div>
+                    <div class="daily-bar ${d.isToday ? 'today-bar' : ''}" style="height:${h}px;" title="${d.key}: \u20B9${d.amount}"></div>
                     <div class="daily-label">${d.label}</div>
                 </div>
             `;
@@ -795,6 +871,26 @@
     }
 
     renderDailyChart();
+
+    // ── Populate month filter ──
+    function populateMonthFilter() {
+        const months = new Set();
+        ALL_EXPENSES.forEach(e => {
+            const m = e.date.slice(0, 7);
+            months.add(m);
+        });
+        const sorted = [...months].sort().reverse();
+        const sel = document.getElementById('monthFilter');
+        const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        sorted.forEach(m => {
+            const [y, mo] = m.split('-');
+            const opt = document.createElement('option');
+            opt.value = m;
+            opt.textContent = `${monthNames[parseInt(mo) - 1]} ${y}`;
+            sel.appendChild(opt);
+        });
+    }
+    populateMonthFilter();
 
     // ── Filtering ──
     let currentPeriod = 'all';
@@ -815,6 +911,9 @@
         btn.closest('.tabs').querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
         btn.classList.add('active');
         currentPeriod = btn.dataset.filter;
+        document.getElementById('monthFilter').value = 'all';
+        document.getElementById('dateFrom').value = '';
+        document.getElementById('dateTo').value = '';
         filterExpenses();
     }
 
@@ -825,39 +924,103 @@
         filterExpenses();
     }
 
+    function clearDateFilters() {
+        document.getElementById('monthFilter').value = 'all';
+        document.getElementById('dateFrom').value = '';
+        document.getElementById('dateTo').value = '';
+        filterExpenses();
+    }
+
+    function formatDateHeading(dateStr) {
+        const d = new Date(dateStr + 'T00:00:00');
+        const dayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+        const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        const day = dayNames[d.getDay()];
+        const date = d.getDate();
+        const month = monthNames[d.getMonth()];
+        const year = d.getFullYear();
+        if (dateStr === TODAY) return `Today \u2014 ${date} ${month} ${year}`;
+        return `${day}, ${date} ${month} ${year}`;
+    }
+
     function filterExpenses() {
         const query = document.getElementById('searchBox').value.toLowerCase();
-        const items = document.querySelectorAll('#expenseList .expense-item');
         const weekAgo = getWeekAgo();
         const monthStart = getMonthStart();
-        let visible = 0;
-        let filteredSum = 0;
+        const selectedMonth = document.getElementById('monthFilter').value;
+        const dateFrom = document.getElementById('dateFrom').value;
+        const dateTo = document.getElementById('dateTo').value;
 
-        items.forEach(item => {
-            const date = item.dataset.date;
-            const cat = item.dataset.cat;
-            const reason = item.dataset.reason;
-            const amount = parseFloat(item.dataset.amount) || 0;
+        const reversed = [...ALL_EXPENSES].reverse();
+
+        const filtered = reversed.filter(e => {
             let show = true;
 
-            if (currentPeriod === 'today') show = date === TODAY;
-            else if (currentPeriod === 'week') show = date >= weekAgo;
-            else if (currentPeriod === 'month') show = date >= monthStart;
+            if (currentPeriod === 'today') show = e.date === TODAY;
+            else if (currentPeriod === 'week') show = e.date >= weekAgo;
+            else if (currentPeriod === 'month') show = e.date >= monthStart;
 
-            if (show && currentCat !== 'all') show = cat === currentCat;
-            if (show && query) show = reason.includes(query);
+            if (show && selectedMonth !== 'all') show = e.date.startsWith(selectedMonth);
+            if (show && dateFrom) show = e.date >= dateFrom;
+            if (show && dateTo) show = e.date <= dateTo;
+            if (show && currentCat !== 'all') show = e.category === currentCat;
+            if (show && query) show = e.reason.toLowerCase().includes(query);
 
-            item.style.display = show ? '' : 'none';
-            if (show) { visible++; filteredSum += amount; }
+            return show;
         });
 
-        document.getElementById('noMatch').style.display = visible === 0 ? 'block' : 'none';
+        renderExpenseList(filtered);
+
+        const filteredSum = filtered.reduce((s, e) => s + e.amount, 0);
+        document.getElementById('noMatch').style.display = filtered.length === 0 ? 'block' : 'none';
 
         const label = currentPeriod === 'all' ? '' : currentPeriod === 'today' ? "today's" : currentPeriod === 'week' ? 'this week\'s' : 'this month\'s';
         const catLabel = currentCat !== 'all' ? ` in ${currentCat}` : '';
-        document.getElementById('filteredTotal').textContent = visible > 0
-            ? `${visible} expense${visible !== 1 ? 's' : ''}${label ? ' ' + label : ''}${catLabel} · Total: ₹${Math.round(filteredSum)}`
+        document.getElementById('filteredTotal').textContent = filtered.length > 0
+            ? `${filtered.length} expense${filtered.length !== 1 ? 's' : ''}${label ? ' ' + label : ''}${catLabel} \u00B7 Total: \u20B9${Math.round(filteredSum)}`
             : '';
+    }
+
+    function renderExpenseList(expenses) {
+        const list = document.getElementById('expenseList');
+        if (expenses.length === 0) {
+            list.innerHTML = '';
+            return;
+        }
+
+        const grouped = {};
+        expenses.forEach(e => {
+            if (!grouped[e.date]) grouped[e.date] = [];
+            grouped[e.date].push(e);
+        });
+
+        let html = '';
+        for (const date of Object.keys(grouped)) {
+            html += `<div class="date-group-header">${formatDateHeading(date)}</div>`;
+            for (const e of grouped[date]) {
+                const icon = catIcon(e.category);
+                html += `
+                <div class="expense-item"
+                     data-id="${e.id}"
+                     data-date="${e.date}"
+                     data-cat="${e.category}"
+                     data-reason="${e.reason.toLowerCase()}"
+                     data-reason-raw="${e.reason}"
+                     data-amount="${e.amount}">
+                    <div class="expense-cat-icon cat-${e.category}">${icon}</div>
+                    <div class="expense-body">
+                        <div class="expense-reason">${e.reason}</div>
+                        <div class="expense-meta">
+                            <span class="expense-date">${e.date}</span>
+                            <span class="expense-cat-tag ctag-${e.category}">${e.category}</span>
+                        </div>
+                    </div>
+                    <div class="expense-amount">\u20B9${Math.round(e.amount)}</div>
+                    <button class="edit-btn" onclick="openEditExpense(this)" title="Edit">&#9998;</button>
+                </div>`;
+            }
+        }
+        list.innerHTML = html;
     }
 
     filterExpenses();
@@ -935,7 +1098,7 @@
         return text
             .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
             .replace(/\*(.+?)\*/g, '<em>$1</em>')
-            .replace(/^[-•] (.+)$/gm, '<li>$1</li>')
+            .replace(/^[-\u2022] (.+)$/gm, '<li>$1</li>')
             .replace(/(<li>.*<\/li>\n?)+/gs, '<ul>$&</ul>')
             .replace(/\n{2,}/g, '</p><p>')
             .replace(/\n/g, '<br>')
