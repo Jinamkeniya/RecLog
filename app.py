@@ -243,6 +243,44 @@ def toggle_task():
     return jsonify({"status": task.status})
 
 
+@app.route("/add-expense", methods=["POST"])
+@login_required
+def add_expense():
+    data = request.get_json()
+    date = data.get("date", "")
+    amount = _parse_amount(data.get("amount", 0))
+    reason = data.get("reason", "").strip()
+    category = data.get("category", "other").lower()
+
+    if not date or not reason:
+        return jsonify({"error": "Date and reason are required."}), 400
+
+    valid_cats = ("food", "groceries", "transport", "shopping", "bills", "entertainment", "health", "education", "other")
+    if category not in valid_cats:
+        category = "other"
+
+    expense = Expense(
+        user_id=current_user.id,
+        date=date,
+        amount=amount,
+        reason=reason,
+        category=category,
+    )
+    db.session.add(expense)
+    db.session.commit()
+
+    return jsonify({
+        "success": True,
+        "expense": {
+            "id": expense.id,
+            "date": expense.date,
+            "amount": expense.amount,
+            "reason": expense.reason,
+            "category": expense.category,
+        },
+    })
+
+
 @app.route("/edit-expense", methods=["POST"])
 @login_required
 def edit_expense():
@@ -279,6 +317,45 @@ def delete_expense():
     db.session.delete(expense)
     db.session.commit()
     return jsonify({"success": True})
+
+
+@app.route("/add-task", methods=["POST"])
+@login_required
+def add_task():
+    data = request.get_json()
+    task_text = data.get("task", "").strip()
+    deadline = data.get("deadline", "").strip() or "none"
+    priority = data.get("priority", "medium").lower()
+
+    if not task_text:
+        return jsonify({"error": "Task description is required."}), 400
+
+    if priority not in ("high", "medium", "low"):
+        priority = "medium"
+
+    today = datetime.now().strftime("%Y-%m-%d")
+    task = Task(
+        user_id=current_user.id,
+        task=task_text,
+        deadline=deadline,
+        priority=priority,
+        created=today,
+        status="pending",
+    )
+    db.session.add(task)
+    db.session.commit()
+
+    return jsonify({
+        "success": True,
+        "task": {
+            "id": task.id,
+            "task": task.task,
+            "deadline": task.deadline,
+            "priority": task.priority,
+            "created": task.created,
+            "status": task.status,
+        },
+    })
 
 
 @app.route("/edit-task", methods=["POST"])
