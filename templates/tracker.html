@@ -761,8 +761,12 @@
             return show;
         });
 
-        // Sort: tasks with deadlines first (ascending), then no-deadline tasks
+        // Sort: pending tasks first, then completed — each group sorted by deadline ascending
         filtered.sort((a, b) => {
+            const aDone = a.status === 'done' ? 1 : 0;
+            const bDone = b.status === 'done' ? 1 : 0;
+            if (aDone !== bDone) return aDone - bDone;
+
             const aHas = a.deadline && a.deadline !== 'none' && a.deadline !== '';
             const bHas = b.deadline && b.deadline !== 'none' && b.deadline !== '';
             if (aHas && bHas) return a.deadline.localeCompare(b.deadline);
@@ -792,54 +796,77 @@
             return;
         }
 
-        const grouped = {};
-        tasks.forEach(t => {
-            const key = (t.deadline && t.deadline !== 'none' && t.deadline !== '') ? t.deadline : '_none';
-            if (!grouped[key]) grouped[key] = [];
-            grouped[key].push(t);
-        });
+        const pendingTasks = tasks.filter(t => t.status !== 'done');
+        const doneTasks = tasks.filter(t => t.status === 'done');
+
+        function groupByDeadline(arr) {
+            const grouped = {};
+            arr.forEach(t => {
+                const key = (t.deadline && t.deadline !== 'none' && t.deadline !== '') ? t.deadline : '_none';
+                if (!grouped[key]) grouped[key] = [];
+                grouped[key].push(t);
+            });
+            return grouped;
+        }
+
+        function renderGroup(grouped) {
+            let html = '';
+            for (const key of Object.keys(grouped)) {
+                const heading = key === '_none' ? 'No deadline' : formatDeadlineHeading(key);
+                html += `<div class="deadline-group-header">${heading}</div>`;
+                for (const t of grouped[key]) {
+                    html += renderTaskItem(t);
+                }
+            }
+            return html;
+        }
 
         let html = '';
-        for (const key of Object.keys(grouped)) {
-            const heading = key === '_none' ? 'No deadline' : formatDeadlineHeading(key);
-            html += `<div class="deadline-group-header">${heading}</div>`;
-            for (const t of grouped[key]) {
-                const isDone = t.status === 'done';
-                const hasDeadline = t.deadline && t.deadline !== 'none' && t.deadline !== '';
-                const isOverdue = !isDone && hasDeadline && t.deadline < TODAY;
-
-                let deadlineTag = '';
-                if (isOverdue) {
-                    deadlineTag = `<span class="task-tag tag-overdue">Overdue \u00B7 ${t.deadline}</span>`;
-                } else if (hasDeadline) {
-                    deadlineTag = `<span class="task-tag tag-deadline">${t.deadline}</span>`;
-                } else {
-                    deadlineTag = `<span class="task-tag tag-no-deadline">No deadline</span>`;
-                }
-
-                html += `
-                <div class="task-item ${isDone ? 'done' : ''}"
-                     data-id="${t.id}"
-                     data-status="${t.status}"
-                     data-deadline="${t.deadline}"
-                     data-priority="${t.priority}"
-                     data-task-name="${escapeHtml(t.task)}"
-                     data-task-deadline="${t.deadline}"
-                     data-task-priority="${t.priority}">
-                    <div class="task-check ${isDone ? 'checked' : ''}" onclick="toggleTask(this)"></div>
-                    <div class="task-body">
-                        <div class="task-name">${escapeHtml(t.task)}</div>
-                        <div class="task-meta">
-                            ${deadlineTag}
-                            <span class="task-tag tag-${t.priority}">${t.priority}</span>
-                            ${t.created ? `<span class="task-created">Added ${t.created}</span>` : ''}
-                        </div>
-                    </div>
-                    <button class="edit-btn" onclick="openEditTask(this)" title="Edit">&#9998;</button>
-                </div>`;
-            }
+        if (pendingTasks.length > 0) {
+            html += renderGroup(groupByDeadline(pendingTasks));
         }
+        if (doneTasks.length > 0) {
+            html += `<div class="deadline-group-header" style="color:#10b981; border-bottom-color:#d1fae5; margin-top:1.25rem;">Completed</div>`;
+            html += renderGroup(groupByDeadline(doneTasks));
+        }
+
         list.innerHTML = html;
+    }
+
+    function renderTaskItem(t) {
+        const isDone = t.status === 'done';
+        const hasDeadline = t.deadline && t.deadline !== 'none' && t.deadline !== '';
+        const isOverdue = !isDone && hasDeadline && t.deadline < TODAY;
+
+        let deadlineTag = '';
+        if (isOverdue) {
+            deadlineTag = `<span class="task-tag tag-overdue">Overdue \u00B7 ${t.deadline}</span>`;
+        } else if (hasDeadline) {
+            deadlineTag = `<span class="task-tag tag-deadline">${t.deadline}</span>`;
+        } else {
+            deadlineTag = `<span class="task-tag tag-no-deadline">No deadline</span>`;
+        }
+
+        return `
+            <div class="task-item ${isDone ? 'done' : ''}"
+                 data-id="${t.id}"
+                 data-status="${t.status}"
+                 data-deadline="${t.deadline}"
+                 data-priority="${t.priority}"
+                 data-task-name="${escapeHtml(t.task)}"
+                 data-task-deadline="${t.deadline}"
+                 data-task-priority="${t.priority}">
+                <div class="task-check ${isDone ? 'checked' : ''}" onclick="toggleTask(this)"></div>
+                <div class="task-body">
+                    <div class="task-name">${escapeHtml(t.task)}</div>
+                    <div class="task-meta">
+                        ${deadlineTag}
+                        <span class="task-tag tag-${t.priority}">${t.priority}</span>
+                        ${t.created ? `<span class="task-created">Added ${t.created}</span>` : ''}
+                    </div>
+                </div>
+                <button class="edit-btn" onclick="openEditTask(this)" title="Edit">&#9998;</button>
+            </div>`;
     }
 
     filterTasks();
