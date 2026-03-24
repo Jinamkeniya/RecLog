@@ -761,7 +761,7 @@
             return show;
         });
 
-        // Sort: pending tasks first, then completed — each group sorted by deadline ascending
+        // Sort: pending tasks first, then completed — each group sorted by deadline descending
         filtered.sort((a, b) => {
             const aDone = a.status === 'done' ? 1 : 0;
             const bDone = b.status === 'done' ? 1 : 0;
@@ -769,7 +769,7 @@
 
             const aHas = a.deadline && a.deadline !== 'none' && a.deadline !== '';
             const bHas = b.deadline && b.deadline !== 'none' && b.deadline !== '';
-            if (aHas && bHas) return a.deadline.localeCompare(b.deadline);
+            if (aHas && bHas) return b.deadline.localeCompare(a.deadline);
             if (aHas && !bHas) return -1;
             if (!aHas && bHas) return 1;
             return 0;

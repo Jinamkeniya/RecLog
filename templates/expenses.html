@@ -274,6 +274,17 @@
         padding: 1rem 0 0.4rem 0.25rem;
         border-bottom: 1px solid #f0f0f0;
         margin-bottom: 0.45rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .date-group-total {
+        font-size: 0.72rem;
+        font-weight: 700;
+        color: #888;
+        text-transform: none;
+        letter-spacing: 0;
     }
 
     .date-group-header:first-child { padding-top: 0; }
@@ -996,7 +1007,8 @@
 
         let html = '';
         for (const date of Object.keys(grouped)) {
-            html += `<div class="date-group-header">${formatDateHeading(date)}</div>`;
+            const dayTotal = grouped[date].reduce((sum, e) => sum + e.amount, 0);
+            html += `<div class="date-group-header"><span>${formatDateHeading(date)}</span><span class="date-group-total">₹${Math.round(dayTotal).toLocaleString('en-IN')}</span></div>`;
             for (const e of grouped[date]) {
                 const icon = catIcon(e.category);
                 html += `
