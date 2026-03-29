@@ -1,4 +1,4 @@
-# Tracker
+# The Dictaphone
 
 A voice-powered personal productivity app that turns spoken notes into structured **expenses** and **tasks** — automatically classified by AI.
 
