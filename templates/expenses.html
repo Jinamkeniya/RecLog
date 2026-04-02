@@ -214,6 +214,26 @@
     .search-box:focus { border-color: #ccc; }
     .search-box::placeholder { color: #ccc; }
 
+    .download-csv-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.45rem 0.8rem;
+        font-size: 0.78rem;
+        font-weight: 600;
+        border-radius: 8px;
+        border: 1px solid #eee;
+        background: #fff;
+        color: #666;
+        cursor: pointer;
+        font-family: inherit;
+        transition: all 0.15s;
+        text-decoration: none;
+        flex-shrink: 0;
+    }
+
+    .download-csv-btn:hover { border-color: #ccc; color: #333; }
+
     /* Date range & month filter */
     .filter-row {
         display: flex;
@@ -653,6 +673,7 @@
         <button class="tab" data-filter="month" onclick="setFilter(this)">Month</button>
     </div>
     <input class="search-box" type="text" placeholder="Search expenses..." oninput="filterExpenses()" id="searchBox">
+    <a href="/export-expenses" class="download-csv-btn" title="Download all expenses as CSV">&#8681; CSV</a>
 </div>
 
 <!-- Month filter + Date range -->
@@ -962,9 +983,9 @@
         const dateFrom = document.getElementById('dateFrom').value;
         const dateTo = document.getElementById('dateTo').value;
 
-        const reversed = [...ALL_EXPENSES].reverse();
+        const sorted = [...ALL_EXPENSES].sort((a, b) => b.date.localeCompare(a.date));
 
-        const filtered = reversed.filter(e => {
+        const filtered = sorted.filter(e => {
             let show = true;
 
             if (currentPeriod === 'today') show = e.date === TODAY;

@@ -1,4 +1,6 @@
 import os
+import io
+import csv
 import tempfile
 import smtplib
 from email.mime.text import MIMEText
@@ -9,7 +11,7 @@ from collections import defaultdict
 from dotenv import load_dotenv
 load_dotenv()
 
-from flask import Flask, render_template, request, jsonify, redirect, url_for, flash
+from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, Response
 from flask_cors import CORS
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 import bcrypt
@@ -163,6 +165,8 @@ def expenses():
             "reason": e.reason,
             "category": e.category,
         })
+
+    expenses_data.sort(key=lambda x: x["date"], reverse=True)
 
     total_all = sum(e["amount"] for e in expenses_data)
     total_week = sum(e["amount"] for e in expenses_data if e["date"] >= week_ago)
@@ -320,6 +324,26 @@ def delete_expense():
     db.session.delete(expense)
     db.session.commit()
     return jsonify({"success": True})
+
+
+@app.route("/export-expenses")
+@login_required
+def export_expenses():
+    expense_list = Expense.query.filter_by(user_id=current_user.id)\
+        .order_by(Expense.date.desc()).all()
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["Date", "Amount", "Reason", "Category"])
+    for e in expense_list:
+        writer.writerow([e.date, e.amount, e.reason, e.category])
+
+    today_str = datetime.now().strftime("%Y-%m-%d")
+    return Response(
+        output.getvalue(),
+        mimetype="text/csv",
+        headers={"Content-Disposition": f"attachment; filename=expenses_{today_str}.csv"},
+    )
 
 
 @app.route("/add-task", methods=["POST"])
