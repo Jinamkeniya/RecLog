@@ -259,7 +259,7 @@ def add_expense():
     if not date:
         return jsonify({"error": "Date is required."}), 400
 
-    valid_cats = ("food", "groceries", "transport", "shopping", "bills", "entertainment", "health", "education", "other")
+    valid_cats = ("food", "groceries", "transport", "shopping", "bills", "entertainment", "zepto", "household", "sports", "fruits", "other")
     if category not in valid_cats:
         category = "other"
 

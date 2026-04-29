@@ -31,10 +31,14 @@ Given a transcribed text, you must:
    - "date": the date mentioned in the text, in YYYY-MM-DD format. If no date is mentioned, use "today".
    - "amount": the monetary amount as a number (no currency symbols). If unclear, use "0".
    - "reason": a short description of what the money was spent on.
-   - "expense_category": classify the expense into one of these categories: "food", "groceries", "transport", "shopping", "bills", "entertainment", "health", "education", or "other".
-     - Use "groceries" for grocery shopping, supermarket purchases, vegetables, fruits, household supplies, and daily essentials.
+   - "expense_category": classify the expense into one of these categories: "food", "groceries", "transport", "shopping", "bills", "entertainment", "zepto", "household", "sports", "fruits", or "other".
+     - Use "groceries" for general grocery shopping, supermarket purchases, vegetables, and daily essentials.
      - Use "food" for restaurants, dining out, snacks, takeout, and ready-to-eat meals.
      - Use "shopping" for clothing, electronics, gadgets, and non-grocery retail purchases.
+     - Use "zepto" for Zepto orders or quick-commerce/instant delivery purchases (Blinkit, Instamart, etc.).
+     - Use "household" for cleaning supplies, detergents, toiletries, kitchen essentials, and other household items.
+     - Use "sports" for gym memberships, sports gear, equipment, fitness classes, and athletic apparel.
+     - Use "fruits" specifically for fruit purchases (apples, bananas, mangoes, etc.).
 
    If "task":
    - "task": a concise description of the task or plan.
@@ -126,7 +130,7 @@ def classify_and_save(transcription, user_id):
                 amount = 0.0
             reason = result.get("reason", "")
             expense_cat = result.get("expense_category", "other").lower()
-            valid_cats = ("food", "groceries", "transport", "shopping", "bills", "entertainment", "health", "education", "other")
+            valid_cats = ("food", "groceries", "transport", "shopping", "bills", "entertainment", "zepto", "household", "sports", "fruits", "other")
             if expense_cat not in valid_cats:
                 expense_cat = "other"
 

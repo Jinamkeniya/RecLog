@@ -27,7 +27,7 @@ Instead of typing entries manually, you **record a voice note** describing an ex
 ### Expense Tracking
 - View all expenses with date, amount, reason, and category
 - Summary stats — today, this week, this month, all time
-- Category breakdown (food, transport, shopping, bills, entertainment, health, education, other)
+- Category breakdown (food, groceries, transport, shopping, bills, entertainment, zepto, household, sports, fruits, other) with All / Month / Week period filter
 - Last 7 days bar chart
 - Filter by time period, category, or search
 - Edit and delete entries

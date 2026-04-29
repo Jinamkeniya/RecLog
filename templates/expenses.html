@@ -58,7 +58,29 @@
         margin-bottom: 0.85rem;
     }
 
+    .cat-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 0.85rem;
+        gap: 0.5rem;
+    }
+
+    .cat-header .section-title { margin-bottom: 0; }
+
+    .cat-period-tabs .tab {
+        padding: 0.3rem 0.55rem;
+        font-size: 0.68rem;
+    }
+
     .cat-list { display: flex; flex-direction: column; gap: 0.6rem; }
+
+    .cat-empty {
+        text-align: center;
+        padding: 1.25rem 0.5rem;
+        color: #ccc;
+        font-size: 0.8rem;
+    }
 
     .cat-row {
         display: flex;
@@ -119,10 +141,14 @@
     .cat-bills .cat-bar { background: #ef4444; }
     .cat-entertainment .cat-icon { background: #f3f0ff; color: #7c5cfc; }
     .cat-entertainment .cat-bar { background: #7c5cfc; }
-    .cat-health .cat-icon { background: #ecfdf5; color: #10b981; }
-    .cat-health .cat-bar { background: #10b981; }
-    .cat-education .cat-icon { background: #e0f2fe; color: #0ea5e9; }
-    .cat-education .cat-bar { background: #0ea5e9; }
+    .cat-zepto .cat-icon { background: #fff1f2; color: #e11d48; }
+    .cat-zepto .cat-bar { background: #e11d48; }
+    .cat-household .cat-icon { background: #fef9c3; color: #ca8a04; }
+    .cat-household .cat-bar { background: #ca8a04; }
+    .cat-sports .cat-icon { background: #cffafe; color: #0891b2; }
+    .cat-sports .cat-bar { background: #0891b2; }
+    .cat-fruits .cat-icon { background: #ffedd5; color: #ea580c; }
+    .cat-fruits .cat-bar { background: #ea580c; }
     .cat-other .cat-icon { background: #f5f5f5; color: #888; }
     .cat-other .cat-bar { background: #999; }
 
@@ -410,8 +436,10 @@
     .ctag-shopping { background: #fce7f3; color: #9d174d; }
     .ctag-bills { background: #fef2f2; color: #991b1b; }
     .ctag-entertainment { background: #f3f0ff; color: #5b21b6; }
-    .ctag-health { background: #ecfdf5; color: #065f46; }
-    .ctag-education { background: #e0f2fe; color: #075985; }
+    .ctag-zepto { background: #fff1f2; color: #9f1239; }
+    .ctag-household { background: #fef9c3; color: #854d0e; }
+    .ctag-sports { background: #cffafe; color: #155e75; }
+    .ctag-fruits { background: #ffedd5; color: #9a3412; }
     .ctag-other { background: #f5f5f5; color: #666; }
 
     /* Insights section */
@@ -623,21 +651,15 @@
 <!-- Category breakdown -->
 {% if cat_breakdown %}
 <div class="section-card">
-    <div class="section-title">By Category</div>
-    <div class="cat-list">
-        {% for cat, amount in cat_breakdown %}
-        <div class="cat-row cat-{{ cat }}">
-            <div class="cat-icon" data-cat="{{ cat }}"></div>
-            <div class="cat-info">
-                <div class="cat-name">{{ cat }}</div>
-                <div class="cat-bar-wrap">
-                    <div class="cat-bar" style="width:{{ (amount / total_all * 100) if total_all > 0 else 0 }}%"></div>
-                </div>
-            </div>
-            <div class="cat-amount">&#8377;{{ "%.0f"|format(amount) }}</div>
+    <div class="cat-header">
+        <div class="section-title">By Category</div>
+        <div class="tabs cat-period-tabs">
+            <button class="tab active" data-cat-period="all" onclick="setCatPeriod(this)">All</button>
+            <button class="tab" data-cat-period="month" onclick="setCatPeriod(this)">Month</button>
+            <button class="tab" data-cat-period="week" onclick="setCatPeriod(this)">Week</button>
         </div>
-        {% endfor %}
     </div>
+    <div class="cat-list" id="catList"></div>
 </div>
 {% endif %}
 
@@ -726,8 +748,10 @@
                 <option value="shopping">Shopping</option>
                 <option value="bills">Bills</option>
                 <option value="entertainment">Entertainment</option>
-                <option value="health">Health</option>
-                <option value="education">Education</option>
+                <option value="zepto">Zepto</option>
+                <option value="household">Household</option>
+                <option value="sports">Sports</option>
+                <option value="fruits">Fruits</option>
                 <option value="other">Other</option>
             </select>
         </div>
@@ -779,8 +803,10 @@
                 <option value="shopping">Shopping</option>
                 <option value="bills">Bills</option>
                 <option value="entertainment">Entertainment</option>
-                <option value="health">Health</option>
-                <option value="education">Education</option>
+                <option value="zepto">Zepto</option>
+                <option value="household">Household</option>
+                <option value="sports">Sports</option>
+                <option value="fruits">Fruits</option>
                 <option value="other">Other</option>
             </select>
         </div>
@@ -803,8 +829,10 @@
         shopping: '\u{1F6CD}',
         bills: '\u{1F4C4}',
         entertainment: '\u{1F3AC}',
-        health: '\u{1F48A}',
-        education: '\u{1F4DA}',
+        zepto: '\u{1F6F5}',
+        household: '\u{1F9F4}',
+        sports: '\u{26BD}',
+        fruits: '\u{1F34E}',
         other: '\u{1F4E6}',
     };
 
@@ -812,10 +840,7 @@
         return CAT_ICONS[cat] || CAT_ICONS.other;
     }
 
-    // Fill icons rendered server-side in the category breakdown
-    document.querySelectorAll('.cat-icon[data-cat]').forEach(el => {
-        el.textContent = catIcon(el.dataset.cat);
-    });
+    // (Category breakdown icons are now rendered client-side; see renderCategoryBreakdown.)
 
     // ── Add Expense ──
     function openAddExpense() {
@@ -955,6 +980,62 @@
         currentCat = btn.dataset.cat;
         filterExpenses();
     }
+
+    // ── Category breakdown with period filter ──
+    let currentCatPeriod = 'all';
+
+    function renderCategoryBreakdown(period) {
+        const list = document.getElementById('catList');
+        if (!list) return;
+
+        const weekAgo = getWeekAgo();
+        const monthStart = getMonthStart();
+
+        const filtered = ALL_EXPENSES.filter(e => {
+            if (period === 'week') return e.date >= weekAgo;
+            if (period === 'month') return e.date >= monthStart;
+            return true;
+        });
+
+        const totals = {};
+        filtered.forEach(e => {
+            totals[e.category] = (totals[e.category] || 0) + e.amount;
+        });
+
+        const periodTotal = filtered.reduce((s, e) => s + e.amount, 0);
+        const sorted = Object.entries(totals).sort((a, b) => b[1] - a[1]);
+
+        if (sorted.length === 0) {
+            const label = period === 'week' ? 'this week' : period === 'month' ? 'this month' : 'all time';
+            list.innerHTML = `<div class="cat-empty">No expenses for ${label}.</div>`;
+            return;
+        }
+
+        list.innerHTML = sorted.map(([cat, amount]) => {
+            const pct = periodTotal > 0 ? (amount / periodTotal * 100) : 0;
+            return `
+                <div class="cat-row cat-${cat}">
+                    <div class="cat-icon">${catIcon(cat)}</div>
+                    <div class="cat-info">
+                        <div class="cat-name">${cat}</div>
+                        <div class="cat-bar-wrap">
+                            <div class="cat-bar" style="width:${pct}%"></div>
+                        </div>
+                    </div>
+                    <div class="cat-amount">\u20B9${Math.round(amount)}</div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    function setCatPeriod(btn) {
+        btn.closest('.tabs').querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        btn.classList.add('active');
+        currentCatPeriod = btn.dataset.catPeriod;
+        renderCategoryBreakdown(currentCatPeriod);
+    }
+
+    renderCategoryBreakdown('all');
 
     function clearDateFilters() {
         document.getElementById('monthFilter').value = 'all';
